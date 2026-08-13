@@ -22,6 +22,7 @@
 package com.vicinityprobe.ui.scanning
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -81,10 +83,27 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val s = state
-            if (s != null) {
-                val remaining = ((s.durationMs - s.elapsedMs).toDouble() / 1000.0).coerceAtLeast(0.0)
-                CircularProgressIndicator(progress = { (s.elapsedMs.toFloat() / s.durationMs).coerceIn(0f, 1f) }, modifier = Modifier.height(96.dp).padding(vertical = 8.dp))
-                Text("${"%.0f".format(remaining)} s", style = MaterialTheme.typography.headlineMedium)
+            if (s != null && s.durationMs > 0) {
+                val elapsed = s.elapsedMs.coerceIn(0L, s.durationMs)
+                // 倒计时:环从满到空,数字向上取整(剩余 9.8s 显示 10)
+                val progress = (1f - elapsed.toFloat() / s.durationMs).coerceIn(0f, 1f)
+                val remainingSec = kotlin.math.ceil((s.durationMs - elapsed).toDouble() / 1000.0).toInt()
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(150.dp)) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.size(150.dp),
+                        strokeWidth = 8.dp,
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            remainingSec.toString(),
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(t(L("剩余秒", "s remaining")), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
                 Text("${s.completedUnits}/${s.totalUnits} ${t(L("个模块", "modules"))}", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 Column(
