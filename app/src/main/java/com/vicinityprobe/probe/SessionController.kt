@@ -157,7 +157,7 @@ class SessionController(
     private fun failedMeasurement(spec: ProbeSpec, code: String) = Measurement(
         spec = spec, status = code,
         quality = com.vicinityprobe.model.domain.QualityReport(
-            QualityLevel.FAILED, code, "采集异常|Acquisition error",
+            QualityLevel.FAILED, code, "采集出错|Acquisition error",
         ),
     )
 

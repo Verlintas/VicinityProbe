@@ -70,7 +70,7 @@ class GnssRawSampler : Sampler {
         if (registered) { try { manager.unregisterGnssMeasurementsCallback(cb) } catch (_: Throwable) {} }
 
         if (measurements == 0) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "无原始观测量(需室外开阔环境)|No raw measurements")
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "没有原始观测量(要去室外开阔处)|No raw measurements")
         }
         val attrs = LinkedHashMap<String, String>()
         attrs["epochs"] = events.toString()

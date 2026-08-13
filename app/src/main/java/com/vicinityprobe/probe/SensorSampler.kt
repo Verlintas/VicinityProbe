@@ -142,7 +142,7 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
             return specs.map { spec ->
                 Measurement(
                     spec = spec, status = QualityLevels.CODE_NO_HARDWARE,
-                    quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_HARDWARE, "设备无此传感器|Sensor not present"),
+                    quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_HARDWARE, "设备上没有这个传感器|Sensor not present"),
                 )
             }
         }
@@ -323,11 +323,11 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
 
     private fun qualityOf(spec: ProbeSpec, n: Int, nominal: Double, coverage: Double, worstAccuracy: Int): QualityReport {
         if (n == 0) {
-            return QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "无样本|No samples")
+            return QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "没有采到样本|No samples")
         }
         if (nominal > 0 && n < (spec.nominalRateHz * 2).toInt()) {
             return QualityReport(QualityLevel.DEGRADED, QualityLevels.CODE_INSUFFICIENT_SAMPLES,
-                "样本数不足|Insufficient samples", coveragePct = coverage, sampleCount = n, achievedRateHz = nominal * coverage / 100, nominalRateHz = nominal)
+                "样本太少|Insufficient samples", coveragePct = coverage, sampleCount = n, achievedRateHz = nominal * coverage / 100, nominalRateHz = nominal)
         }
         val level = when {
             coverage >= 80 && worstAccuracy <= 3 -> QualityLevel.EXCELLENT

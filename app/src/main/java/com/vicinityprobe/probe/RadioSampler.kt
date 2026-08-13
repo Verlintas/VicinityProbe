@@ -51,9 +51,9 @@ class WifiSampler : Sampler {
 
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        if (!wifi.isWifiEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "WiFi 未开启|WiFi off")
+        if (!wifi.isWifiEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "WiFi 没开|WiFi off")
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
-            return failed(QualityLevels.CODE_PERMISSION_DENIED, "缺少邻近设备权限|NEARBY_WIFI_DEVICES required")
+            return failed(QualityLevels.CODE_PERMISSION_DENIED, "没给邻近设备权限|NEARBY_WIFI_DEVICES required")
         }
         val info = try { wifi.connectionInfo } catch (_: Throwable) { null }
         val attrs = LinkedHashMap<String, String>()
@@ -90,16 +90,16 @@ class WifiScanSampler : Sampler {
 
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        if (!wifi.isWifiEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "WiFi 未开启|WiFi off")
+        if (!wifi.isWifiEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "WiFi 没开|WiFi off")
         val nearbyOk = ContextCompat.checkSelfPermission(ctx, Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
         val locOk = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        if (!nearbyOk || !locOk) return failed(QualityLevels.CODE_PERMISSION_DENIED, "需要邻近设备与定位权限|Needs nearby-devices & location")
+        if (!nearbyOk || !locOk) return failed(QualityLevels.CODE_PERMISSION_DENIED, "需要邻近设备和定位权限|Needs nearby-devices & location")
         try { wifi.startScan() } catch (_: Throwable) {}
         delay(1500)
         val results = try { wifi.scanResults } catch (_: Throwable) { emptyList() }
         if (results.isEmpty()) {
-            return failed(QualityLevels.CODE_THROTTLED, "无扫描结果(系统节流)|No results (system throttled)")
+            return failed(QualityLevels.CODE_THROTTLED, "没扫到结果(系统节流)|No results (system throttled)")
         }
         val secCounts = HashMap<String, Int>()
         results.forEach { r ->
@@ -273,10 +273,10 @@ class BluetoothSampler : Sampler {
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
         val adapter = bm?.adapter
-        if (adapter == null) return failed(QualityLevels.CODE_NO_HARDWARE, "无蓝牙硬件|No BT hardware")
-        if (!adapter.isEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "蓝牙未开启|BT off")
+        if (adapter == null) return failed(QualityLevels.CODE_NO_HARDWARE, "没有蓝牙硬件|No BT hardware")
+        if (!adapter.isEnabled) return failed(QualityLevels.CODE_FEATURE_OFF, "蓝牙没开|BT off")
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            return failed(QualityLevels.CODE_PERMISSION_DENIED, "缺少扫描权限|BLUETOOTH_SCAN required")
+            return failed(QualityLevels.CODE_PERMISSION_DENIED, "没给扫描权限|BLUETOOTH_SCAN required")
         }
         val scanner = adapter.bluetoothLeScanner ?: return failed(QualityLevels.CODE_ACQUISITION_ERROR, "no scanner")
         val found = java.util.Collections.synchronizedList(ArrayList<ScanResult>())
@@ -329,12 +329,12 @@ class PairedDevicesSampler : Sampler {
         val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
         val adapter = bm?.adapter
         if (adapter == null) return Measurement(spec, QualityLevels.CODE_NO_HARDWARE,
-            quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_HARDWARE, "无蓝牙硬件|No BT hardware"))
+            quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_HARDWARE, "没有蓝牙硬件|No BT hardware"))
         if (!adapter.isEnabled) return Measurement(spec, QualityLevels.CODE_FEATURE_OFF,
-            quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_FEATURE_OFF, "蓝牙未开启|BT off"))
+            quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_FEATURE_OFF, "蓝牙没开|BT off"))
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return Measurement(spec, QualityLevels.CODE_PERMISSION_DENIED,
-                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "缺少连接权限|BLUETOOTH_CONNECT required"))
+                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "没给连接权限|BLUETOOTH_CONNECT required"))
         }
         val devices = try { adapter.bondedDevices } catch (_: Throwable) { null }
         val list = devices?.map { "${it.name ?: "(unnamed)"} (${it.address})" }?.sorted() ?: emptyList()

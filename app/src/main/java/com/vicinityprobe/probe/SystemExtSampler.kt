@@ -59,10 +59,10 @@ class ThermalSampler : Sampler {
         val attrs = LinkedHashMap<String, String>()
         attrs["thermal_status"] = thermalStatus
         attrs["throttling_severity"] = throttlingSeverity
-        attrs["zones"] = zones.joinToString("\n").ifEmpty { "不可读(无权限)|Unreadable" }
+        attrs["zones"] = zones.joinToString("\n").ifEmpty { "读不了(没权限)|Unreadable" }
         if (rec.size() == 0) {
             return okMeasurement(spec, attrs,
-                quality = QualityReport(QualityLevel.DEGRADED, QualityLevels.CODE_OK, "热区不可读|Thermal zones unreadable"))
+                quality = QualityReport(QualityLevel.DEGRADED, QualityLevels.CODE_OK, "热区读不了|Thermal zones unreadable"))
         }
         val stats = ChannelStats.compute(rec.snapshot().map { it.second }.toFloatArray(), "°C")
         return Measurement(
@@ -102,7 +102,7 @@ class PowerStateSampler : Sampler {
                 )
             } catch (_: Throwable) {}
         }
-        attrs["cores_detail"] = details.joinToString("\n").ifEmpty { "不可读|Unreadable" }
+        attrs["cores_detail"] = details.joinToString("\n").ifEmpty { "读不了|Unreadable" }
         // 深度睡眠统计
         try {
             val sched = File("/proc/schedstat").readLines().firstOrNull()
@@ -212,7 +212,7 @@ class StorageSampler : Sampler {
             }
             attrs["volumes"] = details.joinToString("\n")
         } catch (_: Throwable) {
-            attrs["volumes"] = "不可读|Unreadable"
+            attrs["volumes"] = "读不了|Unreadable"
         }
         return okMeasurement(spec, attrs,
             quality = QualityReport(QualityLevel.GOOD, QualityLevels.CODE_OK, "", sampleCount = 1))

@@ -144,7 +144,7 @@ class SystemSampler : Sampler {
         val attrs = LinkedHashMap<String, String>()
         attrs["cpu_cores"] = cores.toString()
         attrs["cpu_freq_mhz"] = readCpuFreqs()
-        attrs["load_avg"] = readLoadAvg() ?: "不可读|Unreadable"
+        attrs["load_avg"] = readLoadAvg() ?: "读不了|Unreadable"
         try {
             val mi = ActivityManager.MemoryInfo()
             am.getMemoryInfo(mi)
@@ -186,7 +186,7 @@ class SystemSampler : Sampler {
                 ?.readText()?.trim()
             if (maxF != null) "$core:${(maxF.toLongOrNull() ?: 0) / 1000}MHz" else "$core:-"
         }
-    } catch (_: Throwable) { "不可读|Unreadable" }
+    } catch (_: Throwable) { "读不了|Unreadable" }
 
     private fun readLoadAvg(): String? = try {
         val f = File("/proc/loadavg")
@@ -206,6 +206,6 @@ class SystemSampler : Sampler {
                 "$type:${deg / 10.0}°C"
             } catch (_: Throwable) { null }
         }
-        if (readable.isEmpty()) "不可读(无权限)|Unreadable" else readable.take(8).joinToString(", ")
-    } catch (_: Throwable) { "不可读(无权限)|Unreadable" }
+        if (readable.isEmpty()) "读不了(没权限)|Unreadable" else readable.take(8).joinToString(", ")
+    } catch (_: Throwable) { "读不了(没权限)|Unreadable" }
 }

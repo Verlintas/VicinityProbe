@@ -50,11 +50,11 @@ class LocationSampler : Sampler {
         val fine = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!fine && !coarse) {
-            return failed(QualityLevels.CODE_PERMISSION_DENIED, "缺少定位权限|Location permission denied")
+            return failed(QualityLevels.CODE_PERMISSION_DENIED, "没给定位权限|Location permission denied")
         }
         val providers = try { manager.getProviders(true) } catch (_: Throwable) { emptyList() }
         if (providers.none { it == LocationManager.GPS_PROVIDER || it == LocationManager.NETWORK_PROVIDER }) {
-            return failed(QualityLevels.CODE_FEATURE_OFF, "定位服务未开启|Location service off")
+            return failed(QualityLevels.CODE_FEATURE_OFF, "定位服务没开|Location service off")
         }
         val fixes = java.util.Collections.synchronizedList(ArrayList<Location>())
         val accuracies = ArrayList<Double>()
@@ -86,7 +86,7 @@ class LocationSampler : Sampler {
 
         val last = fixes.lastOrNull()
         if (last == null) {
-            return failed(QualityLevels.CODE_NO_FIX, "未获取到定位|No location fix")
+            return failed(QualityLevels.CODE_NO_FIX, "没定位到|No location fix")
         }
         val attrs = LinkedHashMap<String, String>()
         attrs["latitude"] = String.format("%.6f", last.latitude)
@@ -132,7 +132,7 @@ class GnssSampler : Sampler {
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!permOk) {
             return Measurement(spec, QualityLevels.CODE_PERMISSION_DENIED,
-                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "缺少定位权限|Location permission denied"))
+                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "没给定位权限|Location permission denied"))
         }
         if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             return Measurement(spec, QualityLevels.CODE_FEATURE_OFF,
@@ -176,7 +176,7 @@ class GnssSampler : Sampler {
 
         if (snapshots == 0) {
             return Measurement(spec, QualityLevels.CODE_NO_DATA,
-                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "无卫星状态|No satellite status"))
+                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "没有卫星状态|No satellite status"))
         }
         val attrs = LinkedHashMap<String, String>()
         attrs["visible"] = visible.toString()
@@ -205,7 +205,7 @@ class NmeaSampler : Sampler {
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!permOk) {
             return Measurement(spec, QualityLevels.CODE_PERMISSION_DENIED,
-                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "缺少定位权限|Location permission denied"))
+                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_PERMISSION_DENIED, "没给定位权限|Location permission denied"))
         }
         var count = 0
         var hdop: Double? = null
@@ -236,7 +236,7 @@ class NmeaSampler : Sampler {
 
         if (count == 0) {
             return Measurement(spec, QualityLevels.CODE_NO_DATA,
-                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "无 NMEA 数据|No NMEA data"))
+                quality = QualityReport(QualityLevel.FAILED, QualityLevels.CODE_NO_DATA, "没有 NMEA 数据|No NMEA data"))
         }
         val attrs = LinkedHashMap<String, String>()
         attrs["sentences"] = count.toString()

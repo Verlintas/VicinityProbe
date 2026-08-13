@@ -50,7 +50,7 @@ class WifiDynamicSampler : Sampler {
 
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        if (!wifi.isWifiEnabled) return failedMeasurement(spec, QualityLevels.CODE_FEATURE_OFF, "WiFi 未开启|WiFi off")
+        if (!wifi.isWifiEnabled) return failedMeasurement(spec, QualityLevels.CODE_FEATURE_OFF, "WiFi 没开|WiFi off")
         val rec = ChannelRecorder("rssi")
         var rxSpeed = 0; var txSpeed = 0; var supplicant = "?"
         val start = session.startRealtimeMs
@@ -68,7 +68,7 @@ class WifiDynamicSampler : Sampler {
             delay(200)
         }
         if (rec.size() == 0) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "未连接 WiFi|Not connected to WiFi")
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "没连 WiFi|Not connected to WiFi")
         }
         val stats = ChannelStats.compute(rec.snapshot().map { it.second }.toFloatArray(), "dBm")
         val attrs = LinkedHashMap<String, String>()
@@ -124,7 +124,7 @@ class WifiRttSampler : Sampler {
         val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         val aps = try { wifi.scanResults.filter { it.is80211mcResponder }.take(8) } catch (_: Throwable) { emptyList() }
         if (aps.isEmpty()) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "未发现 RTT 响应 AP|No 802.11mc responder found")
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "没发现支持 RTT 的 AP|No 802.11mc responder found")
         }
         val builder = RangingRequest.Builder()
         aps.forEach { builder.addAccessPoint(it) }
@@ -149,7 +149,7 @@ class WifiRttSampler : Sampler {
         while (kotlin.coroutines.coroutineContext.isActive && !finished && SystemClockCompat.elapsedRealtime() < end) { delay(100) }
 
         if (results.isEmpty()) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "RTT 无结果|No RTT results")
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "RTT 没结果|No RTT results")
         }
         val attrs = LinkedHashMap<String, String>()
         attrs["responders"] = aps.size.toString()
@@ -162,7 +162,7 @@ class WifiRttSampler : Sampler {
                 attrs["rtt_$ssid"] = "status=${r.status}"
             }
         }
-        if (dists.isEmpty()) return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "RTT 全部失败|All RTT failed")
+        if (dists.isEmpty()) return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "RTT 全失败了|All RTT failed")
         return okMeasurement(
             spec,
             attrs = attrs,
@@ -180,7 +180,7 @@ class WifiDirectSampler : Sampler {
         val p2p = ctx.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
         if (p2p == null) return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "不支持 WiFi Direct|P2P unsupported")
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
-            return failedMeasurement(spec, QualityLevels.CODE_PERMISSION_DENIED, "缺少邻近设备权限|NEARBY_WIFI_DEVICES required")
+            return failedMeasurement(spec, QualityLevels.CODE_PERMISSION_DENIED, "没给邻近设备权限|NEARBY_WIFI_DEVICES required")
         }
         var channel: WifiP2pManager.Channel? = null
         var initOk = false
@@ -307,7 +307,7 @@ class CellularSeriesSampler : Sampler {
             session.live.set("cellular_series", "level", "${levelRec.snapshot().lastOrNull()?.second?.toInt() ?: -1}/4")
             delay(500)
         }
-        if (samples == 0) return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "无信号数据|No signal data")
+        if (samples == 0) return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "没有信号数据|No signal data")
         val attrs = LinkedHashMap<String, String>()
         attrs["serving_cell"] = lastCell
         attrs["samples"] = samples.toString()
@@ -347,8 +347,8 @@ class BluetoothClassicSampler : Sampler {
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
         val adapter = bm?.adapter
-        if (adapter == null) return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "无蓝牙硬件|No BT hardware")
-        if (!adapter.isEnabled) return failedMeasurement(spec, QualityLevels.CODE_FEATURE_OFF, "蓝牙未开启|BT off")
+        if (adapter == null) return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "没有蓝牙硬件|No BT hardware")
+        if (!adapter.isEnabled) return failedMeasurement(spec, QualityLevels.CODE_FEATURE_OFF, "蓝牙没开|BT off")
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -395,7 +395,7 @@ class NfcSampler : Sampler {
 
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val adapter = NfcAdapter.getDefaultAdapter(ctx)
-        if (adapter == null) return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "无 NFC 硬件|No NFC hardware")
+        if (adapter == null) return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "没有 NFC 硬件|No NFC hardware")
         val attrs = LinkedHashMap<String, String>()
         attrs["enabled"] = adapter.isEnabled.toString()
         try {
@@ -458,7 +458,7 @@ class InfraredSampler : Sampler {
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val ir = ctx.getSystemService(Context.CONSUMER_IR_SERVICE) as? ConsumerIrManager
         if (ir == null || !ir.hasIrEmitter()) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "无红外发射器|No IR emitter")
+            return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "没有红外发射器|No IR emitter")
         }
         val ranges = ir.carrierFrequencies
         val attrs = LinkedHashMap<String, String>()

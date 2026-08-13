@@ -66,7 +66,7 @@ class AudioSampler : Sampler {
 
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            return failed(QualityLevels.CODE_PERMISSION_DENIED, "缺少录音权限|RECORD_AUDIO permission denied")
+            return failed(QualityLevels.CODE_PERMISSION_DENIED, "没给录音权限|RECORD_AUDIO permission denied")
         }
         val minBuf = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         if (minBuf <= 0) {
@@ -134,7 +134,7 @@ class AudioSampler : Sampler {
         }
 
         if (frames < 3) {
-            return failed(QualityLevels.CODE_INSUFFICIENT_SAMPLES, "采样帧数不足|Insufficient audio frames")
+            return failed(QualityLevels.CODE_INSUFFICIENT_SAMPLES, "采到的音频帧太少|Insufficient audio frames")
         }
         val sorted = frameDbs.sorted()
         val laeq = 10 * log10(sorted.sumOf { 10.0.pow(it / 10.0) } / sorted.size)
@@ -172,7 +172,7 @@ class AudioSampler : Sampler {
                 "frame_ms" to FRAME_MS.toString(),
                 "sample_rate" to SAMPLE_RATE.toString(),
                 "calibrated" to "false",
-                "note" to "未校准,参考值|Uncalibrated reference level",
+                "note" to "未校准,仅供参考|Uncalibrated reference",
             ),
             quality = QualityReport(
                 level = if (coverage >= 80) QualityLevel.EXCELLENT else QualityLevel.GOOD,
