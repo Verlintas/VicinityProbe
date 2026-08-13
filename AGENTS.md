@@ -20,6 +20,7 @@
 
 ## Conventions
 
+- **GitHub-facing content (README/docs/release notes) MUST be in English** — release notes via `gh release create --notes` written in English only
 - All human-readable text is stored as `bil("中文","English")`; UI resolves it via `trBilingual(s, lang)`
 - **ProbeCatalog is the single source of truth**: new probes MUST be registered in `ProbeCatalog` first, then implemented as a Sampler and registered in `SessionController.buildUnits()` and `CapabilityProbe`
 - Probe id naming: `sensor.*` / `location` / `gnss` / `nmea` / `wifi` / `wifi_scan` / `cellular` / `connectivity` / `bluetooth` / `bt_paired` / `noise` / `audio_state` / `battery` / `device` / `system`
