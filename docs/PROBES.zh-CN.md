@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **61 项**,分成 11 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT)。
+共 **67 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
 
 ## 2. 测量流程
 
@@ -155,6 +155,19 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `storage` | **存储卷**(StorageManager):逐卷 UUID/状态/模拟/可移除/容量 |
 | `device` | 静态信息:型号/系统版本/安全补丁/内核/ABI、屏幕(分辨率/密度/刷新率/HDR)、亮度、摄像头枚举、USB、振动器、时区/语言/运行时长 |
 
+### 5.11 安全与渗透辅助(SECURITY)—— 主动网络探测
+
+| 探测项 | 说明 |
+|---|---|
+| ⚠️ `net_arp` | **局域网主机发现**:先对子网内的主机做 TCP 探测,让内核完成 ARP 解析,再读 `/proc/net/arp` 拿到 IP/MAC 列表,并**识别厂商**(内置 OUI 数据库) |
+| ⚠️ `net_portscan` | **端口扫描**:对目标主机(默认网关或自定义)做 40+ 常用端口的 TCP connect 扫描,记录每端口延迟并识别服务 |
+| ⚠️ `net_http_fingerprint` | **HTTP/TLS 指纹**:抓 HTTP 响应头(Server/X-Powered-By),推断 Web 技术栈(nginx/Apache/IIS/Tomcat…),解析 TLS 证书链(CN/颁发者/签名算法/自签名/是否过期) |
+| `net_dns` | **DNS 解析测试**:常见域名的解析延迟、本机 DNS 列表、公共 DNS 连通性(TCP/53) |
+| ⚠️ `net_ssdp` | **SSDP/UPnP 设备发现**:UDP 组播 M-SEARCH,列出响应设备(ST/LOCATION/SERVER) |
+| `net_ping` | **网关连通性测试**:对目标做 TCP 方式 RTT(最小/平均/最大 + 丢包率),不需要 root |
+
+> 目标主机在首页可配置(默认用网关)。所有安全类探测都是主动网络行为,详见 §7.5。
+
 ## 6. 分析层(AnalysisEngine)
 
 只根据测量值算专业摘要,**不出主观评分**:
@@ -194,6 +207,8 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | ⚠️ `nfc` | 读标签可能碰到别人的设备信息 |
 | ⚠️ `sensor.heart_rate` / `sensor.heart_beat` | 心率属于健康数据,个人数据保护规则管得严 |
 | ⚠️ `kernel` | 设备序列号属于个人标识符 |
+| ⚠️ `net_arp` / `net_portscan` | 主动探测局域网、端口扫描,部分国家按网络安全法规管 |
+| ⚠️ `net_http_fingerprint` / `net_ssdp` | 指纹识别、组播发现会碰到第三方服务/设备信息 |
 
 这些项在应用里(预检页和报告页)以及导出报告里都会标注;在预检页取消勾选,或者拒绝对应权限,就能把它们排除出测量会话。
 

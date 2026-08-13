@@ -6,7 +6,7 @@ Professional environmental measurement system: standardized data acquisition fro
 
 ## Features
 
-- **Measurement catalog (61 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (67 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
@@ -16,6 +16,7 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
+  - **Security & pentest assist**: LAN host discovery with vendor (OUI) identification, port scan with service recognition, HTTP/TLS fingerprinting (web-stack & certificate analysis), DNS resolution testing, SSDP/UPnP discovery, TCP reachability — configurable target (default: gateway)
 - **Continuous monitoring**: foreground service with quality trend charts
 - Bilingual UI (Chinese/English, follows system locale)
 
@@ -34,7 +35,7 @@ Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity reco
 
 > **Compliance**: Use this software in compliance with all applicable local laws and regulations. You are responsible for how you use it.
 >
-> **Compliance-flagged probes**: the following collect data that is regulated or personal data in some jurisdictions and are marked ⚠️ in-app and in reports: WiFi scan/RTT/Direct/Aware, Bluetooth scan/classic discovery/paired list, cellular & cell identity, location & GNSS (incl. raw measurements), microphone SPL, NFC, heart rate, and device serial. See [docs/PROBES.md](docs/PROBES.md) §7.5 for details.
+> **Compliance-flagged probes**: the following collect data that is regulated or personal data in some jurisdictions and are marked ⚠️ in-app and in reports: WiFi scan/RTT/Direct/Aware, Bluetooth scan/classic discovery/paired list, cellular & cell identity, location & GNSS (incl. raw measurements), microphone SPL, NFC, heart rate, device serial, and active network probes (LAN host discovery / port scan / HTTP-TLS fingerprint / SSDP). See [docs/PROBES.md](docs/PROBES.md) §7.5 for details.
 
 ## Limitations (honestly reported)
 

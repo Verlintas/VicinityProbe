@@ -19,7 +19,7 @@ Each probe entry `ProbeSpec` defines:
 | `keepRawSamples` | Whether raw samples are archived |
 | `requiredPermissions` | Required permissions |
 
-61 probes across 11 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT).
+61 probes across 11 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY).
 
 ## 2. Measurement pipeline
 
@@ -153,6 +153,19 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | `storage` | **Storage volumes** (StorageManager): per-volume UUID/state/emulated/removable/capacity |
 | `device` | Static info: model/OS version/security patch/kernel/ABIs, display (resolution/density/refresh rate/HDR), brightness, camera enumeration, USB, vibrator, timezone/locale/uptime |
 
+### 5.11 Security & pentest assist (SECURITY) — active network probing
+
+| Probe | Notes |
+|---|---|
+| ⚠️ `net_arp` | **LAN host discovery**: TCP-probes subnet hosts to trigger kernel ARP resolution, then reads `/proc/net/arp` → IP/MAC list with **vendor identification** (built-in OUI database) |
+| ⚠️ `net_portscan` | **Port scan**: TCP-connect scan of 40+ well-known ports on the target (default gateway or configured host), per-port latency + service identification |
+| ⚠️ `net_http_fingerprint` | **HTTP/TLS fingerprint**: HTTP response headers (Server/X-Powered-By), web-stack inference (nginx/Apache/IIS/Tomcat/…), TLS certificate chain analysis (CN/issuer/signature algorithm/self-signed/expired) |
+| `net_dns` | **DNS resolution test**: resolution latency for common domains, local DNS servers, public-DNS reachability (TCP/53) |
+| ⚠️ `net_ssdp` | **SSDP/UPnP discovery**: UDP multicast M-SEARCH → responding devices (ST/LOCATION/SERVER) |
+| `net_ping` | **Gateway reachability**: TCP-based RTT to target (min/avg/max + loss), no root required |
+
+> Target host is configurable on the Home screen (defaults to the gateway). All security probes are active network actions — see §7.5.
+
 ## 6. Analysis layer (AnalysisEngine)
 
 Measurement-derived summaries only — **no subjective scoring**:
@@ -192,6 +205,8 @@ Probes marked ⚠️ collect data that is regulated or considered personal data 
 | ⚠️ `nfc` | Tag reading may involve third-party device info |
 | ⚠️ `sensor.heart_rate` / `sensor.heart_beat` | Heart rate is health data under strict data-protection rules |
 | ⚠️ `kernel` | Device serial is a personal identifier |
+| ⚠️ `net_arp` / `net_portscan` | Active LAN probing / port scanning is regulated by network-security laws in some countries |
+| ⚠️ `net_http_fingerprint` / `net_ssdp` | Fingerprinting & multicast discovery touch third-party service/device info |
 
 These probes are flagged in-app (preflight & report) and in exported reports. Denying a permission or deselecting a probe in preflight excludes it from the session.
 

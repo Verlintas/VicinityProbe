@@ -201,6 +201,12 @@ class SessionController(
         add("kernel", KernelSampler())
         add("display", DisplaySampler())
         add("storage", StorageSampler())
+        add("net_arp", ArpHostDiscoverySampler())
+        add("net_portscan", PortScanSampler())
+        add("net_http_fingerprint", HttpFingerprintSampler())
+        add("net_dns", DnsProbeSampler())
+        add("net_ssdp", SsdpDiscoverySampler())
+        add("net_ping", PingSampler())
         return units
     }
 }

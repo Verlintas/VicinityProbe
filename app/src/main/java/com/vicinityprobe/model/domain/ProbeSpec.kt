@@ -122,6 +122,7 @@ enum class Category {
     SYSTEM,        // 系统资源
     DEVICE,        // 设备静态信息
     CONTEXT,       // 上下文事件
+    SECURITY,      // 安全与渗透辅助(主动网络探测)
 }
 
 /**
@@ -251,6 +252,20 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("storage", "存储卷|Storage volumes", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.GB, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+
+            // ---- SECURITY 安全与渗透辅助(主动网络探测) ----
+            add(ProbeSpec("net_arp", "局域网主机发现|LAN host discovery", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_portscan", "端口扫描|Port scan", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_http_fingerprint", "HTTP/TLS 指纹|HTTP/TLS fingerprint", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_dns", "DNS 解析测试|DNS resolution test", Category.SECURITY, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_ssdp", "SSDP/UPnP 设备发现|SSDP/UPnP discovery", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_ping", "网关连通性测试|Gateway reachability", Category.SECURITY, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
         }.map { spec ->
             // 合规风险标注:采集数据在部分司法辖区可能受法律法规约束
             val risks = mapOf(
@@ -274,6 +289,10 @@ object ProbeCatalog {
                 "sensor.heart_rate" to "心率属于健康数据,个人数据保护规则管得严|Heart rate is health data under strict data-protection rules",
                 "sensor.heart_beat" to "心率数据,个人数据保护规则管得严|Heart-rate data under strict data-protection rules",
                 "kernel" to "设备序列号属于个人标识符|Device serial is a personal identifier",
+                "net_arp" to "主动探测局域网设备,部分国家受网络安全法规约束|Active LAN probing may be regulated by network-security laws in some countries",
+                "net_portscan" to "端口扫描属主动网络探测,部分国家受网络安全法规约束|Port scanning is active network probing, regulated in some countries",
+                "net_http_fingerprint" to "指纹识别可能触及第三方服务信息|Fingerprinting may touch third-party service info",
+                "net_ssdp" to "组播发现会暴露周边设备信息|Multicast discovery exposes nearby device info",
             )
             risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec
         }

@@ -214,6 +214,16 @@ object CapabilityProbe {
         out.add(Capability("display", nameL("显示能力|Display capabilities"), ProbeCatalog.byId("display")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("storage", nameL("存储卷|Storage volumes"), ProbeCatalog.byId("storage")!!, CapabilityStatus.SUPPORTED))
 
+        val connected = try { (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).activeNetwork != null } catch (_: Throwable) { false }
+        fun netCap(spec: ProbeSpec): Capability = Capability(spec.id, nameL(spec.name), spec,
+            if (connected) CapabilityStatus.SUPPORTED else CapabilityStatus.FEATURE_OFF)
+        out.add(netCap(ProbeCatalog.byId("net_arp")!!))
+        out.add(netCap(ProbeCatalog.byId("net_portscan")!!))
+        out.add(netCap(ProbeCatalog.byId("net_http_fingerprint")!!))
+        out.add(netCap(ProbeCatalog.byId("net_dns")!!))
+        out.add(netCap(ProbeCatalog.byId("net_ssdp")!!))
+        out.add(netCap(ProbeCatalog.byId("net_ping")!!))
+
         return out
     }
 

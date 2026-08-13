@@ -80,6 +80,7 @@ fun HomeScreen(nav: NavController) {
     var fullMode by remember { mutableStateOf(true) }
     var durationMs by remember { mutableStateOf(10_000L) }
     val durations = listOf(5_000L to "5s", 10_000L to "10s", 30_000L to "30s", 60_000L to "60s")
+    var targetHost by remember { mutableStateOf(com.vicinityprobe.probe.ScanTargetConfig.target(context) ?: "") }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -144,6 +145,27 @@ fun HomeScreen(nav: NavController) {
                             )
                         }
                     }
+                }
+            }
+
+            OutlinedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t(L("主动探测目标", "Probe target")), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        t(L("端口扫描/HTTP指纹/连通性测试的目标主机,留空则用默认网关", "Target for port scan / HTTP fingerprint / reachability; empty = default gateway")),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = targetHost,
+                        onValueChange = {
+                            targetHost = it
+                            com.vicinityprobe.probe.ScanTargetConfig.setTarget(context, it)
+                        },
+                        singleLine = true,
+                        placeholder = { Text(t(L("默认网关", "default gateway")) + " e.g. 192.168.1.1") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
