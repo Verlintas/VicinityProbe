@@ -19,7 +19,7 @@ Each probe entry `ProbeSpec` defines:
 | `keepRawSamples` | Whether raw samples are archived |
 | `requiredPermissions` | Required permissions |
 
-44 probes across 11 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT).
+61 probes across 11 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT).
 
 ## 2. Measurement pipeline
 
@@ -111,17 +111,29 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | `location` | GPS + network location at 500 ms intervals: lat/lon/altitude/accuracy (horizontal+vertical)/speed/bearing; accuracy & speed distributions; 10 s first-fix timeout |
 | `gnss` | Satellite status snapshots: visible/used-in-fix counts, constellation distribution (GPS/GLONASS/BeiDou/Galileo/QZSS/IRNSS/SBAS), best SNR |
 | `nmea` | GGA sentence parsing: fix quality (1=GPS/2=DGPS/4=RTK), satellites used, HDOP |
+| `gnss_raw` | **GNSS raw measurements** (Android GNSS Logger grade): epochs, carrier-phase observations, pseudorange-rate validity, multipath flags, CN0 statistics, constellation mix |
+| `gnss_hw` | **GNSS hardware info**: hardware model/year, capabilities flags (reflection over GnssCapabilities), antenna count & carrier frequencies |
 
 ### 5.8 Radio (RADIO)
 
 | Probe | Notes |
 |---|---|
 | `wifi` | Connection info: SSID/BSSID/RSSI/band/channel/link speed/IP |
+| `wifi_dynamic` | Link dynamics over the session: RSSI time series (5 Hz) + Rx/Tx link speeds + supplicant state + hotspot state (reflection) + interface MAC |
 | `wifi_scan` | Environment scan: AP count, **security analysis** (WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/OPEN), RSSI distribution, details |
-| `cellular` | Generation (5G NR/4G LTE/3G), operator, MCC/MNC, roaming, **serving & neighbor cells**: LTE (RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN), NR (SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN), GSM/WCDMA/CDMA |
+| `wifi_rtt` | **IEEE 802.11mc FTM ranging**: distance to RTT-capable APs (distance ± stddev, RSSI) |
+| `wifi_direct` | **WiFi Direct (P2P) peer discovery**: peers, device type, group owners |
+| `wifi_aware` | **Wi-Fi Aware (NAN)**: capability characteristics (service name length limits) + attach/subscribe status |
+| `cellular` | Generation (5G NR/4G LTE/3G), operator, MCC/MNC, roaming, **serving & neighbor cells**: LTE (RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**bandwidth**/**timing advance via reflection**), NR (SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**bands**), GSM/WCDMA/CDMA |
+| `cellular_series` | **Signal time series**: level (0–4) and dBm sampled at 2 Hz over the session, serving cell tracking |
 | `connectivity` | Transports (incl. VPN detection), uplink/downlink bandwidth, IPv4/IPv6, DNS, gateway, interface enumeration |
-| `bluetooth` | 3 s BLE scan: device count / RSSI distribution / service UUIDs / manufacturer data |
+| `network_stats` | **Traffic & sockets**: total Rx/Tx bytes & packets since boot (TrafficStats), per-interface counters (`/proc/net/dev`), TCP/UDP socket counts |
+| `bluetooth` | BLE scan: device count / RSSI distribution / service UUIDs / manufacturer data / **adv flags, Tx power, adv length** |
+| `bt_classic` | **Classic Bluetooth discovery** (startDiscovery): device name/address/device class |
 | `bt_paired` | Paired device list |
+| `nfc` | NFC adapter: enabled state, NDEF push, **technology list (reflection)** |
+| `fm_radio` | **FM radio tuners** (RadioManager via reflection — API removed in SDK 36): module id/vendor/hw/properties |
+| `infrared` | **IR emitter**: presence + carrier frequency ranges |
 
 ### 5.9 Electrical (ELECTRICAL)
 
@@ -134,6 +146,11 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | Probe | Notes |
 |---|---|
 | `system` | CPU cores/frequencies (sysfs read; unreadable on most devices — reported), CPU usage (`/proc/stat` two-sample delta), load average, memory (total/available, 500 ms polling), storage (internal/external), thermal zones (thermal_zone sysfs; no permission — reported) |
+| `thermal` | **Thermal status**: per-zone temperatures (sysfs) + system thermal status / throttling severity (IThermalService via reflection) |
+| `power_state` | **CPU power state**: online/present/possible core lists, per-core governor + frequency range + current frequency (sysfs), schedstat |
+| `kernel` | **Kernel & security**: SELinux enforcing state (sysfs), `/proc/version`, bootloader/hardware/revision (reflection), build tags/type, serial (reflection, usually restricted) |
+| `display` | **Display capabilities**: supported refresh modes, current mode (reflection), HDR types, auto-brightness/auto-rotate/screen-off timeout |
+| `storage` | **Storage volumes** (StorageManager): per-volume UUID/state/emulated/removable/capacity |
 | `device` | Static info: model/OS version/security patch/kernel/ABIs, display (resolution/density/refresh rate/HDR), brightness, camera enumeration, USB, vibrator, timezone/locale/uptime |
 
 ## 6. Analysis layer (AnalysisEngine)

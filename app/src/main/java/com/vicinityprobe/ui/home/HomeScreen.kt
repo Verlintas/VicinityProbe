@@ -202,6 +202,12 @@ fun HomeScreen(nav: NavController) {
                     }
                 }
             }
+
+            Text(
+                t(L("请遵守当地法律法规合法使用本软件", "Use this software in compliance with local laws and regulations")),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

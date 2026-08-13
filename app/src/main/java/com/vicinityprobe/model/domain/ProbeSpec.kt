@@ -201,14 +201,30 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("nmea", "NMEA 定位质量|NMEA fix quality", Category.POSITIONING, Measurand.CELESTIAL_GEOMETRY, UnitDef.NONE, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("gnss_raw", "GNSS 原始观测量|GNSS raw measurements", Category.POSITIONING, Measurand.CELESTIAL_GEOMETRY, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("gnss_hw", "GNSS 硬件信息|GNSS hardware info", Category.POSITIONING, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
 
             // ---- RADIO ----
             add(ProbeSpec("wifi", "WiFi 连接|WiFi connection", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("wifi_dynamic", "WiFi 链路动态|WiFi link dynamics", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 5.0,
+                sampleChannels = listOf("rssi")))
             add(ProbeSpec("wifi_scan", "WiFi 环境扫描|WiFi scan", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("wifi_rtt", "WiFi RTT 测距|WiFi RTT ranging", Category.RADIO, Measurand.DISTANCE, UnitDef.M, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("wifi_direct", "WiFi Direct 对等发现|WiFi Direct peers", Category.RADIO, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("wifi_aware", "Wi-Fi Aware 感知能力|Wi-Fi Aware capability", Category.RADIO, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("cellular", "蜂窝网络|Cellular network", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("cellular_series", "蜂窝信号时序|Cellular signal series", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 2.0,
+                sampleChannels = listOf("level", "dbm")))
             add(ProbeSpec("connectivity", "网络接口|Connectivity & interfaces", Category.RADIO, Measurand.OTHER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("network_stats", "流量与套接字统计|Traffic & socket stats", Category.RADIO, Measurand.COUNT, UnitDef.GB, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("bluetooth", "蓝牙设备扫描|Bluetooth scan", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("bt_classic", "经典蓝牙发现|Classic BT discovery", Category.RADIO, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("bt_paired", "已配对蓝牙|Paired devices", Category.RADIO, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("nfc", "NFC 能力与标签|NFC capability & tags", Category.RADIO, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("fm_radio", "FM 调谐器|FM radio tuner", Category.RADIO, Measurand.FREQUENCY, UnitDef.MHZ, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("infrared", "红外发射器|IR emitter", Category.RADIO, Measurand.FREQUENCY, UnitDef.HZ, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
 
             // ---- AUDIO ----
             add(ProbeSpec("noise", "环境声压级|Ambient SPL", Category.AUDIO, Measurand.SOUND_PRESSURE_LEVEL, UnitDef.DBA, nominalRateHz = 100.0,
@@ -220,6 +236,16 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("device", "设备静态信息|Device identity", Category.DEVICE, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0, keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("system", "系统资源状态|System resources", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.PCT, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("thermal", "热状态|Thermal status", Category.SYSTEM, Measurand.TEMPERATURE, UnitDef.CELSIUS, nominalRateHz = 1.0,
+                sampleChannels = listOf("value")))
+            add(ProbeSpec("power_state", "CPU 电源状态|CPU power state", Category.SYSTEM, Measurand.FREQUENCY, UnitDef.MHZ, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("kernel", "内核与安全|Kernel & security", Category.SYSTEM, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("display", "显示能力|Display capabilities", Category.DEVICE, Measurand.FREQUENCY, UnitDef.HZ, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("storage", "存储卷|Storage volumes", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.GB, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
         }
     }

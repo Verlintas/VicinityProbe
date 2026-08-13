@@ -6,7 +6,7 @@ Professional environmental measurement system: standardized data acquisition fro
 
 ## Features
 
-- **Measurement catalog (44 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (61 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
@@ -31,6 +31,8 @@ Professional environmental measurement system: standardized data acquisition fro
 ## Permissions
 
 Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity recognition, body sensors, notifications, foreground service. All permissions are declared with their purpose in-app and can be denied individually; denied probes are marked `PERMISSION_DENIED` in the report without aborting the session.
+
+> **Compliance**: Use this software in compliance with all applicable local laws and regulations. You are responsible for how you use it.
 
 ## Limitations (honestly reported)
 

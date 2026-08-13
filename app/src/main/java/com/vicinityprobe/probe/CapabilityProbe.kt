@@ -141,6 +141,8 @@ object CapabilityProbe {
         out.add(locationCap(ProbeCatalog.byId("location")!!, needsGps = false))
         out.add(locationCap(ProbeCatalog.byId("gnss")!!, needsGps = true))
         out.add(locationCap(ProbeCatalog.byId("nmea")!!, needsGps = true))
+        out.add(locationCap(ProbeCatalog.byId("gnss_raw")!!, needsGps = false))
+        out.add(locationCap(ProbeCatalog.byId("gnss_hw")!!, needsGps = false))
 
         val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         val nearbyOk = ContextCompat.checkSelfPermission(ctx, Perms.NEARBY_WIFI) == PackageManager.PERMISSION_GRANTED
@@ -155,9 +157,16 @@ object CapabilityProbe {
             return Capability(spec.id, nameL(spec.name), spec, status, listOf(Perms.NEARBY_WIFI))
         }
         out.add(wifiCap(ProbeCatalog.byId("wifi")!!, needsLocation = false))
+        out.add(wifiCap(ProbeCatalog.byId("wifi_dynamic")!!, needsLocation = false))
         out.add(wifiCap(ProbeCatalog.byId("wifi_scan")!!, needsLocation = true))
+        out.add(wifiCap(ProbeCatalog.byId("wifi_direct")!!, needsLocation = false))
+        out.add(wifiCap(ProbeCatalog.byId("wifi_aware")!!, needsLocation = false))
+        out.add(Capability("wifi_rtt", nameL("WiFi RTT 测距|WiFi RTT ranging"), ProbeCatalog.byId("wifi_rtt")!!,
+            if (locOk) CapabilityStatus.SUPPORTED else CapabilityStatus.PERMISSION_MISSING, listOf(Perms.FINE)))
         out.add(Capability("cellular", nameL("蜂窝网络|Cellular network"), ProbeCatalog.byId("cellular")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("cellular_series", nameL("蜂窝信号时序|Cellular signal series"), ProbeCatalog.byId("cellular_series")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("connectivity", nameL("网络接口|Connectivity"), ProbeCatalog.byId("connectivity")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("network_stats", nameL("流量与套接字|Traffic & sockets"), ProbeCatalog.byId("network_stats")!!, CapabilityStatus.SUPPORTED))
 
         val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
         val adapter = bm?.adapter
@@ -174,7 +183,23 @@ object CapabilityProbe {
             return Capability(spec.id, nameL(spec.name), spec, status, listOf(if (needsConnect) Perms.BT_CONNECT else Perms.BT_SCAN))
         }
         out.add(btCap(ProbeCatalog.byId("bluetooth")!!, needsConnect = false))
+        out.add(btCap(ProbeCatalog.byId("bt_classic")!!, needsConnect = true))
         out.add(btCap(ProbeCatalog.byId("bt_paired")!!, needsConnect = true))
+
+        val nfcAdapter = android.nfc.NfcAdapter.getDefaultAdapter(ctx)
+        out.add(Capability("nfc", nameL("NFC 能力与标签|NFC capability & tags"), ProbeCatalog.byId("nfc")!!,
+            if (nfcAdapter == null) CapabilityStatus.NO_HARDWARE else CapabilityStatus.SUPPORTED))
+        val irManager = ctx.getSystemService(Context.CONSUMER_IR_SERVICE) as? android.hardware.ConsumerIrManager
+        out.add(Capability("infrared", nameL("红外发射器|IR emitter"), ProbeCatalog.byId("infrared")!!,
+            if (irManager != null && irManager.hasIrEmitter()) CapabilityStatus.SUPPORTED else CapabilityStatus.NO_HARDWARE))
+        val fm = try {
+            val rmClass = Class.forName("android.hardware.radio.RadioManager")
+            val svc = ctx.getSystemService("radio")
+            if (svc == null) false
+            else (rmClass.getMethod("getModuleList").invoke(svc) as? List<*>)?.isNotEmpty() == true
+        } catch (_: Throwable) { false }
+        out.add(Capability("fm_radio", nameL("FM 调谐器|FM radio tuner"), ProbeCatalog.byId("fm_radio")!!,
+            if (fm) CapabilityStatus.SUPPORTED else CapabilityStatus.NO_HARDWARE))
 
         val audioOk = ContextCompat.checkSelfPermission(ctx, Perms.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         out.add(Capability("noise", nameL("环境声压级|Ambient SPL"), ProbeCatalog.byId("noise")!!,
@@ -183,6 +208,11 @@ object CapabilityProbe {
         out.add(Capability("battery", nameL("电池电气参数|Battery"), ProbeCatalog.byId("battery")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("device", nameL("设备静态信息|Device info"), ProbeCatalog.byId("device")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("system", nameL("系统资源状态|System resources"), ProbeCatalog.byId("system")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("thermal", nameL("热状态|Thermal status"), ProbeCatalog.byId("thermal")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("power_state", nameL("CPU 电源状态|CPU power state"), ProbeCatalog.byId("power_state")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("kernel", nameL("内核与安全|Kernel & security"), ProbeCatalog.byId("kernel")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("display", nameL("显示能力|Display capabilities"), ProbeCatalog.byId("display")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("storage", nameL("存储卷|Storage volumes"), ProbeCatalog.byId("storage")!!, CapabilityStatus.SUPPORTED))
 
         return out
     }

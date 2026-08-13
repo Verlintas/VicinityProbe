@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **44 项**,分为 11 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT)。
+共 **61 项**,分为 11 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT)。
 
 ## 2. 测量流程
 
@@ -113,17 +113,29 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 | `location` | GPS+网络定位,500ms 采样:经纬度/海拔/精度(水平+垂直)/速度/方位;统计精度与速度分布;首个定位超时 10s |
 | `gnss` | 卫星状态快照:可见数/参与定位数/星座分布(GPS/GLONASS/北斗/伽利略/QZSS/IRNSS/SBAS)/最佳信噪比 |
 | `nmea` | GGA 语句解析:定位质量(1=GPS/2=差分/4=RTK)、使用卫星数、HDOP |
+| `gnss_raw` | **GNSS 原始观测量**(GNSS Logger 级别):历元数、载波相位观测、伪距率有效性、多径标志、CN0 统计、星座构成 |
+| `gnss_hw` | **GNSS 硬件信息**:硬件型号/年代、能力标志(反射 GnssCapabilities)、天线数与载波频率 |
 
 ### 5.8 无线电(RADIO)
 
 | 探测项 | 说明 |
 |---|---|
 | `wifi` | 连接信息:SSID/BSSID/RSSI/频段/信道/链路速率/IP |
+| `wifi_dynamic` | 链路动态:会话期间 RSSI 时序(5Hz)+ 上下行链路速率 + 认证状态 + 热点状态(反射)+ 接口 MAC |
 | `wifi_scan` | 环境扫描:AP 数量、**安全分析**(WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/开放)、RSSI 分布统计、明细 |
-| `cellular` | 制式(5G NR/4G LTE/3G)、运营商、MCC/MNC、漫游、**服务小区与邻区**:LTE(RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN)、NR(SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN)、GSM/WCDMA/CDMA |
+| `wifi_rtt` | **IEEE 802.11mc FTM 测距**:对支持 RTT 的 AP 测量距离(±标准差、RSSI) |
+| `wifi_direct` | **WiFi Direct(P2P)对等发现**:对等设备、设备类型、组所有者 |
+| `wifi_aware` | **Wi-Fi Aware(NAN)**:能力特征(服务名长度限制)+ attach/订阅状态 |
+| `cellular` | 制式(5G NR/4G LTE/3G)、运营商、MCC/MNC、漫游、**服务小区与邻区**:LTE(RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**带宽**/**反射时序提前**)、NR(SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**频带**)、GSM/WCDMA/CDMA |
+| `cellular_series` | **信号时序**:等级(0-4)与 dBm 按 2Hz 全会话采样,服务小区跟踪 |
 | `connectivity` | 传输类型(含 VPN 检测)、上下行带宽、IPv4/IPv6、DNS、网关、接口枚举 |
-| `bluetooth` | BLE 扫描 3s:设备数/RSSI 分布/服务 UUID/厂商数据 |
+| `network_stats` | **流量与套接字**:开机累计 Rx/Tx 字节与包数(TrafficStats)、逐接口计数(`/proc/net/dev`)、TCP/UDP 套接字数量 |
+| `bluetooth` | BLE 扫描:设备数/RSSI 分布/服务 UUID/厂商数据/**广播标志、发射功率、广播长度** |
+| `bt_classic` | **经典蓝牙发现**(startDiscovery):名称/地址/设备类别 |
 | `bt_paired` | 已配对设备列表 |
+| `nfc` | NFC:启用状态、NDEF 推送、**技术列表(反射)** |
+| `fm_radio` | **FM 调谐器**(RadioManager 反射,SDK 36 已移除公开 API):模块 id/厂商/硬件/属性 |
+| `infrared` | **红外发射器**:存在性 + 载波频率范围 |
 
 ### 5.9 电气(ELECTRICAL)
 
@@ -136,6 +148,11 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 | 探测项 | 说明 |
 |---|---|
 | `system` | CPU 核心数/频率(`/sys` 读取,多数设备不可读则标注)、CPU 使用率(`/proc/stat` 两次采样差分)、负载均值、内存(总量/可用,500ms 周期采样)、存储(内部/外部)、热区温度(thermal_zone,无权限则标注) |
+| `thermal` | **热状态**:逐热区温度(sysfs)+ 系统热状态/降频等级(反射 IThermalService) |
+| `power_state` | **CPU 电源状态**:在线/存在/可能核心列表、逐核调速器 + 频率范围 + 当前频率(sysfs)、schedstat |
+| `kernel` | **内核与安全**:SELinux 强制状态(sysfs)、`/proc/version`、引导加载程序/硬件/修订(反射)、构建标签/类型、序列号(反射,通常受限) |
+| `display` | **显示能力**:支持的刷新率模式、当前模式(反射)、HDR 类型、自动亮度/自动旋转/息屏超时 |
+| `storage` | **存储卷**(StorageManager):逐卷 UUID/状态/模拟/可移除/容量 |
 | `device` | 静态信息:型号/系统版本/安全补丁/内核/ABI、屏幕(分辨率/密度/刷新率/HDR)、亮度、摄像头枚举、USB、振动器、时区/语言/运行时长 |
 
 ## 6. 分析层(AnalysisEngine)

@@ -156,14 +156,20 @@ class CellularSampler : Sampler {
                         rsrp = s.rsrp; rsrq = s.rsrq; snr = s.rssnr; level = s.level
                         sig = "LTE RSRP ${s.rsrp}dBm RSRQ ${s.rsrq}dB SNR ${s.rssnr}dB"
                         val id = ci.cellIdentity
-                        cell = "LTE ci=${id.ci} tac=${id.tac} pci=${id.pci} earfcn=${id.earfcn}"
+                        val bw = try { id.bandwidth } catch (_: Throwable) { -1 }
+                        val ta = reflectInt(id, "getTimingAdvance")
+                        cell = "LTE ci=${id.ci} tac=${id.tac} pci=${id.pci} earfcn=${id.earfcn}" +
+                            (if (bw > 0) " bw=${bw}kHz" else "") +
+                            (if (ta != null) " ta=$ta" else "")
                     }
                     is android.telephony.CellInfoNr -> {
                         val s = ci.cellSignalStrength as android.telephony.CellSignalStrengthNr
                         rsrp = s.ssRsrp; rsrq = s.ssRsrq; snr = s.ssSinr; level = s.level
                         sig = "NR SS-RSRP ${s.ssRsrp}dBm SS-RSRQ ${s.ssRsrq}dB SS-SINR ${s.ssSinr}dB"
                         val id = ci.cellIdentity as android.telephony.CellIdentityNr
-                        cell = "NR nci=${id.nci} pci=${id.pci} nrarfcn=${id.nrarfcn} tac=${id.tac}"
+                        val bands = try { id.bands.joinToString(",") } catch (_: Throwable) { "" }
+                        cell = "NR nci=${id.nci} pci=${id.pci} nrarfcn=${id.nrarfcn} tac=${id.tac}" +
+                            (if (bands.isNotEmpty()) " bands=[$bands]" else "")
                     }
                     is android.telephony.CellInfoGsm -> {
                         sig = "GSM RSSI ${ci.cellSignalStrength.rssi}dBm"
@@ -201,6 +207,11 @@ class CellularSampler : Sampler {
             stats = if (rsrp != null) mapOf("rsrp" to com.vicinityprobe.model.domain.ChannelStats.compute(floatArrayOf(rsrp.toFloat()), "dBm")) else emptyMap(),
             quality = QualityReport(q, QualityLevels.CODE_OK, "", sampleCount = 1, achievedRateHz = 0.0),
         )
+    }
+    private fun reflectInt(target: Any, method: String): Int? {
+        return try {
+            target.javaClass.getMethod(method).invoke(target) as? Int
+        } catch (_: Throwable) { null }
     }
 }
 
@@ -286,9 +297,17 @@ class BluetoothSampler : Sampler {
         attrs["devices_found"] = list.size.toString()
         attrs["detail"] = list.joinToString("\n") { r ->
             val name = r.device.name ?: "(unnamed)"
-            val services = r.scanRecord?.serviceUuids?.take(3)?.joinToString(",") ?: ""
-            val mfg = r.scanRecord?.manufacturerSpecificData?.size() ?: 0
-            "$name | ${r.device.address} | ${r.rssi}dBm${if (services.isNotEmpty()) " | svc:$services" else ""}${if (mfg > 0) " | mfg:${mfg}B" else ""}"
+            val record = r.scanRecord
+            val services = record?.serviceUuids?.take(3)?.joinToString(",") ?: ""
+            val mfg = record?.manufacturerSpecificData?.size() ?: 0
+            val txPower = record?.txPowerLevel
+            val advFlags = record?.advertiseFlags
+            "$name | ${r.device.address} | ${r.rssi}dBm" +
+                (if (txPower != null) " | tx=${txPower}dBm" else "") +
+                (if (advFlags != null) " | flags=0x${String.format("%02X", advFlags)}" else "") +
+                (if (services.isNotEmpty()) " | svc:$services" else "") +
+                (if (mfg > 0) " | mfg:${mfg}B" else "") +
+                " | adv=${record?.bytes?.size ?: 0}B"
         }
         val rssis = list.map { it.rssi.toFloat() }
         return Measurement(
