@@ -1,3 +1,7 @@
+// VicinityProbe — professional environmental measurement system
+// Copyright (C) 2026 Verlintas
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 pluginManagement {
     repositories {
         google {

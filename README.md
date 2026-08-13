@@ -1,38 +1,42 @@
 # VicinityProbe
 
-专业环境测量系统:通过手机全部传感器与系统模块进行**规范化的环境数据采集**,生成带数据质量门禁、原始样本存档与频谱分析的测量报告。
+Professional environmental measurement system: standardized data acquisition from virtually every sensor and system module of your phone, producing measurement reports with data quality gates, raw sample archives, and spectral analysis.
 
-## 功能
+Copyright (C) 2026 Verlintas — GPL-3.0-or-later. See [LICENSE](LICENSE) and the copyright headers in source files.
 
-- **测量目录(44 项)**: 每个探测项定义被测量、SI 单位、标称采样率、量程 —— 运动学 / 环境物理量 / 磁场 / 生物信号 / 声学 / 定位与卫星 / 无线电 / 电气 / 系统资源 / 设备信息 / 上下文事件
-- **能力预检**: 运行时枚举硬件支持(✅/⚠️缺权限/❌无硬件),自定义测量计划
-- **数据质量门禁**: 每项输出 EXCELLENT/GOOD/DEGRADED/FAILED 等级 + 覆盖率 + 实际采样率 + 机器可读原因码
-- **专业统计**: 每通道 min/max/mean/stddev/RMS/CV + 分位数 p1/p5/p25/p50/p75/p95/p99
-- **专业分析**: 声学(LAeq/Lpeak/L10/L50/L90,AudioRecord 直接采集)、FFT 频谱分析(主导频率/平坦度/频带能量)、振动特征(ISO 2631 近似分级)、定位摘要、上下文分类
-- **原始样本存档**: 所有数值通道以 CSV 落盘(`samples/<probeId>/channel_<ch>.csv`)
-- **报告导出**: 版本化 schema 的 JSON + Markdown + ZIP(报告+原始样本)
-- **历史与对比**: 报告存档/重命名/删除,双报告统计量与属性逐项对比
-- **连续监测**: 前台服务定时测量,质量趋势图
-- 中英双语(跟随系统)
+[中文版](README.zh-CN.md) · [Probe system documentation (EN)](docs/PROBES.md)
 
-> 每个探测项的测量规范、技术原理与结果计算详见 [docs/PROBES.md](docs/PROBES.md)。
+## Features
 
-## 构建
+- **Measurement catalog (44 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
+- **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
+- **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
+- **Acoustics**: AudioRecord direct PCM capture → LAeq / Lpeak / L10 / L50 / L90
+- **Spectral analysis**: hand-written Radix-2 FFT (Hann window) → dominant frequency / spectral flatness / band energy
+- **Vibration analysis**: dominant frequency / RMS / crest factor / ISO 2631 approximate level
+- **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
+- **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
+- **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
+- **Continuous monitoring**: foreground service with quality trend charts
+- Bilingual UI (Chinese/English, follows system locale)
+
+## Build
 
 ```
-# 环境要求: JDK 17+, Android SDK 36
-./gradlew assembleRelease     # 产物: app/build/outputs/apk/release/VicinityProbe-<version>.apk
-./gradlew testDebugUnitTest   # 单元测试(统计/FFT/分析/报告)
-./gradlew lint                # 静态检查
+# Requirements: JDK 17+, Android SDK 36
+./gradlew assembleRelease     # output: app/build/outputs/apk/release/VicinityProbe-<version>.apk
+./gradlew testDebugUnitTest   # unit tests (statistics/FFT/analysis/report)
+./gradlew lint                # static analysis
 ```
 
-## 权限
+## Permissions
 
-定位、邻近 WiFi 设备、蓝牙扫描/连接、麦克风、活动识别、生物传感器、通知、前台服务。所有权限应用内声明用途并可逐项拒绝;被拒的探测项在报告中标注 `PERMISSION_DENIED` 而不中断测量。
+Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity recognition, body sensors, notifications, foreground service. All permissions are declared with their purpose in-app and can be denied individually; denied probes are marked `PERMISSION_DENIED` in the report without aborting the session.
 
-## 边界(报告如实标注)
+## Limitations (honestly reported)
 
-- 声压级为未校准参考值(需设备级校准才具绝对意义)
-- thermal/CPU 频率等 `/sys` 文件多数设备无读权限
-- WiFi 扫描受系统节流限制
-- 全部数据本地采集,无任何联网(无遥测、无云同步)
+- Sound pressure level is an **uncalibrated reference value** (absolute levels require device calibration)
+- `thermal` / CPU frequency sysfs files are unreadable on most devices
+- WiFi scans are subject to system throttling
+- All data is processed locally — no network access, no telemetry, no cloud sync
