@@ -166,6 +166,7 @@ class SessionController(
         val sensorSpecs = probeIds.mapNotNull { ProbeCatalog.byId(it) }
             .filter { it.id.startsWith("sensor.") }
         if (sensorSpecs.isNotEmpty()) units.add(SensorBatchSampler(sensorSpecs))
+        if (probeIds.contains("sensor_calib")) units.add(SensorCalibSampler())
 
         fun add(id: String, sampler: Sampler) {
             if (probeIds.contains(id)) units.add(sampler)
@@ -207,6 +208,23 @@ class SessionController(
         add("net_dns", DnsProbeSampler())
         add("net_ssdp", SsdpDiscoverySampler())
         add("net_ping", PingSampler())
+        add("net_banner", BannerGrabSampler())
+        add("net_http_methods", HttpMethodsSampler())
+        add("net_http_security", HttpSecuritySampler())
+        add("net_tls_versions", TlsVersionsSampler())
+        add("net_ntp", NtpSampler())
+        add("net_proxy", ProxyConfigSampler())
+        add("net_subnet_scan", SubnetScanSampler())
+        add("net_mqtt", MqttProbeSampler())
+        add("net_http_paths", HttpPathSampler())
+        add("net_tcp_concurrency", TcpConcurrencySampler())
+        add("proc_net_conn", ProcNetConnSampler())
+        add("proc_meminfo", ProcMeminfoSampler())
+        add("cpu_per_core", PerCoreCpuSampler())
+        add("disk_stats", DiskStatsSampler())
+        add("proc_uptime", BootStatsSampler())
+        add("battery_drain", BatteryDrainSampler())
+        add("wifi_channel", WifiChannelSampler())
         return units
     }
 }

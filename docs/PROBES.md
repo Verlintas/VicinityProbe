@@ -166,6 +166,39 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 
 > Target host is configurable on the Home screen (defaults to the gateway). All security probes are active network actions — see §7.5.
 
+### 5.12 Security probes — extended (SECURITY)
+
+| Probe | Notes |
+|---|---|
+| ⚠️ `net_banner` | **Service banner grab**: read service banners on well-known ports (FTP/SSH/Telnet/SMTP/HTTP/MySQL/Redis…), version inference |
+| ⚠️ `net_http_methods` | **HTTP method probe**: OPTIONS/TRACE/PUT/DELETE allow-listing per target |
+| ⚠️ `net_http_security` | **Security-header analysis**: presence check of HSTS/X-Frame-Options/CSP/X-Content-Type-Options… |
+| ⚠️ `net_tls_versions` | **TLS version probe**: handshake attempts for TLSv1/1.1/1.2/1.3 on 443 |
+| ⚠️ `net_ntp` | **NTP time offset**: clock offset vs public NTP servers (Aliyun/NTSC/Google/Pool/Tencent) |
+| `net_proxy` | **System proxy config**: HTTP proxy host/port/exclusions + Java proxy properties |
+| ⚠️ `net_subnet_scan` | **Full subnet scan**: all 254 hosts, web/SSH/SMB ports (80/443/8080/22/445) |
+| ⚠️ `net_mqtt` | **MQTT broker probe**: CONNECT/CONNACK handshake on 1883 |
+| ⚠️ `net_http_paths` | **Web path enumeration**: status codes for /robots.txt /admin /api /phpinfo.php /\.git/HEAD… |
+| ⚠️ `net_tcp_concurrency` | **Concurrency test**: 16 simultaneous connections to target 443, success rate + RTT |
+
+### 5.13 Deep system probes (SYSTEM)
+
+| Probe | Notes |
+|---|---|
+| `proc_net_conn` | **Connection table**: `/proc/net/tcp(+6)` parse — per-state counts, established connections with local/remote addr & UID |
+| `proc_meminfo` | **Kernel memory detail**: MemTotal/Free/Available/Buffers/Cached/Swap/Dirty/PageTables/Committed_AS… |
+| `cpu_per_core` | **Per-core CPU usage**: per-cpuN `/proc/stat` deltas at 2 Hz → per-core % time series |
+| `disk_stats` | **Disk IO stats**: `/proc/diskstats` deltas → read/write ops per s, sector throughput |
+| `proc_uptime` | **Boot & run stats**: uptime/idle ratio, hostname, osrelease/ostype, entropy |
+
+### 5.14 Calibration & electrical analysis
+
+| Probe | Notes |
+|---|---|
+| `sensor_calib` | **Sensor calibration analysis**: calibrated-vs-uncalibrated sample deltas (accel/gyro/mag) → per-axis bias, offset magnitude, mag hard-iron offset estimate |
+| `battery_drain` | **Battery drain rate**: live current×voltage power time series (mW) → mean/min/max power, estimated autonomy from charge counter |
+| `wifi_channel` | **WiFi channel analysis**: AP distribution per channel, 2.4/5/6 GHz band split, per-channel avg RSSI + congestion |
+
 ## 6. Analysis layer (AnalysisEngine)
 
 Measurement-derived summaries only — **no subjective scoring**:
@@ -207,6 +240,9 @@ Probes marked ⚠️ collect data that is regulated or considered personal data 
 | ⚠️ `kernel` | Device serial is a personal identifier |
 | ⚠️ `net_arp` / `net_portscan` | Active LAN probing / port scanning is regulated by network-security laws in some countries |
 | ⚠️ `net_http_fingerprint` / `net_ssdp` | Fingerprinting & multicast discovery touch third-party service/device info |
+| ⚠️ `net_banner` / `net_http_methods` / `net_http_security` / `net_tls_versions` / `net_http_paths` | Active security testing of third-party services — regulated in some countries |
+| ⚠️ `net_subnet_scan` | Full-subnet scanning is high-intensity probing, regulated in some countries |
+| ⚠️ `net_mqtt` / `net_tcp_concurrency` / `net_ntp` | Active probing of third-party services |
 
 These probes are flagged in-app (preflight & report) and in exported reports. Denying a permission or deselecting a probe in preflight excludes it from the session.
 

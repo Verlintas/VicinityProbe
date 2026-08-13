@@ -6,7 +6,7 @@ Professional environmental measurement system: standardized data acquisition fro
 
 ## Features
 
-- **Measurement catalog (67 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (85 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
@@ -16,7 +16,9 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
-  - **Security & pentest assist**: LAN host discovery with vendor (OUI) identification, port scan with service recognition, HTTP/TLS fingerprinting (web-stack & certificate analysis), DNS resolution testing, SSDP/UPnP discovery, TCP reachability — configurable target (default: gateway)
+  - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
+  - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
+  - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis
 - **Continuous monitoring**: foreground service with quality trend charts
 - Bilingual UI (Chinese/English, follows system locale)
 

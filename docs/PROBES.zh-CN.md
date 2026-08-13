@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **67 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
+共 **85 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
 
 ## 2. 测量流程
 
@@ -168,6 +168,39 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 
 > 目标主机在首页可配置(默认用网关)。所有安全类探测都是主动网络行为,详见 §7.5。
 
+### 5.12 安全探测扩展(SECURITY)
+
+| 探测项 | 说明 |
+|---|---|
+| ⚠️ `net_banner` | **服务 Banner 抓取**:读常用端口(FTP/SSH/Telnet/SMTP/HTTP/MySQL/Redis…)的服务横幅,识别版本 |
+| ⚠️ `net_http_methods` | **HTTP 方法探测**:目标允许哪些方法(OPTIONS/TRACE/PUT/DELETE) |
+| ⚠️ `net_http_security` | **安全头分析**:检查 HSTS/X-Frame-Options/CSP/X-Content-Type-Options 等是否缺失 |
+| ⚠️ `net_tls_versions` | **TLS 版本探测**:对 443 尝试 TLSv1/1.1/1.2/1.3 握手 |
+| ⚠️ `net_ntp` | **NTP 时间偏移**:对公共 NTP 服务器(阿里/国家授时中心/Google/Pool/腾讯)测时钟偏移 |
+| `net_proxy` | **系统代理配置**:HTTP 代理主机/端口/排除列表 + Java 代理属性 |
+| ⚠️ `net_subnet_scan` | **全子网扫描**:网段内全部 254 台主机,Web/SSH/SMB 端口探测 |
+| ⚠️ `net_mqtt` | **MQTT Broker 探测**:1883 CONNECT/CONNACK 握手 |
+| ⚠️ `net_http_paths` | **Web 路径枚举**:/robots.txt /admin /api /phpinfo.php /.git/HEAD 等路径状态码 |
+| ⚠️ `net_tcp_concurrency` | **并发连接测试**:同时对目标 443 开 16 条连接,成功率与延迟 |
+
+### 5.13 系统深层分析(SYSTEM)
+
+| 探测项 | 说明 |
+|---|---|
+| `proc_net_conn` | **网络连接表**:解析 `/proc/net/tcp(+6)`,按状态统计,已建立连接含本地/远端地址与 UID |
+| `proc_meminfo` | **内核内存明细**:MemTotal/Free/Available/Buffers/Cached/Swap/Dirty/PageTables/Committed_AS 等 |
+| `cpu_per_core` | **逐核 CPU 使用率**:/proc/stat 各 cpuN 行差分(2Hz)→ 逐核百分比时序 |
+| `disk_stats` | **磁盘 IO 统计**:/proc/diskstats 差分 → 每秒读写次数与扇区吞吐 |
+| `proc_uptime` | **开机与运行统计**:开机时长/空闲占比、主机名、osrelease/ostype、熵 |
+
+### 5.14 校准与电气分析
+
+| 探测项 | 说明 |
+|---|---|
+| `sensor_calib` | **传感器校准分析**:同一会话对比校准/未校准采样(加速度/陀螺/磁力)→ 逐轴偏差、偏移幅值、磁硬铁偏移估计 |
+| `battery_drain` | **电池放电速率**:实时电流×电压 → 功率时序(mW),输出均值/最小/最大功率,按电量计估算续航 |
+| `wifi_channel` | **WiFi 信道分析**:各信道 AP 分布、2.4/5/6GHz 频段占比、每信道平均 RSSI 与拥挤度 |
+
 ## 6. 分析层(AnalysisEngine)
 
 只根据测量值算专业摘要,**不出主观评分**:
@@ -209,6 +242,9 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | ⚠️ `kernel` | 设备序列号属于个人标识符 |
 | ⚠️ `net_arp` / `net_portscan` | 主动探测局域网、端口扫描,部分国家按网络安全法规管 |
 | ⚠️ `net_http_fingerprint` / `net_ssdp` | 指纹识别、组播发现会碰到第三方服务/设备信息 |
+| ⚠️ `net_banner` / `net_http_methods` / `net_http_security` / `net_tls_versions` / `net_http_paths` | 对第三方服务做主动安全测试,部分国家有规定 |
+| ⚠️ `net_subnet_scan` | 全子网扫描属高强度主动探测,部分国家按网络安全法规管 |
+| ⚠️ `net_mqtt` / `net_tcp_concurrency` / `net_ntp` | 对第三方服务做主动探测 |
 
 这些项在应用里(预检页和报告页)以及导出报告里都会标注;在预检页取消勾选,或者拒绝对应权限,就能把它们排除出测量会话。
 

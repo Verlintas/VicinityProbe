@@ -252,6 +252,22 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("storage", "存储卷|Storage volumes", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.GB, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("proc_net_conn", "网络连接表|Network connection table", Category.SYSTEM, Measurand.COUNT, UnitDef.CHANNELS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("proc_meminfo", "内核内存明细|Kernel memory detail", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.GB, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("cpu_per_core", "逐核 CPU 使用率|Per-core CPU usage", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.PCT, nominalRateHz = 2.0,
+                sampleChannels = emptyList()))
+            add(ProbeSpec("disk_stats", "磁盘 IO 统计|Disk IO stats", Category.SYSTEM, Measurand.COUNT, UnitDef.NONE, nominalRateHz = 1.0,
+                sampleChannels = emptyList()))
+            add(ProbeSpec("proc_uptime", "开机与运行统计|Boot & run stats", Category.SYSTEM, Measurand.TIME_SPAN, UnitDef.S, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("sensor_calib", "传感器校准分析|Sensor calibration analysis", Category.MOTION, Measurand.ACCELERATION, UnitDef.M_S2, nominalRateHz = 50.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("battery_drain", "电池放电速率|Battery drain rate", Category.ELECTRICAL, Measurand.POWER, UnitDef.W, nominalRateHz = 2.0,
+                sampleChannels = listOf("power_mw")))
+            add(ProbeSpec("wifi_channel", "WiFi 信道占用分析|WiFi channel analysis", Category.RADIO, Measurand.SIGNAL_POWER, UnitDef.DBM, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
 
             // ---- SECURITY 安全与渗透辅助(主动网络探测) ----
             add(ProbeSpec("net_arp", "局域网主机发现|LAN host discovery", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
@@ -265,6 +281,26 @@ object ProbeCatalog {
             add(ProbeSpec("net_ssdp", "SSDP/UPnP 设备发现|SSDP/UPnP discovery", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("net_ping", "网关连通性测试|Gateway reachability", Category.SECURITY, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_banner", "服务 Banner 抓取|Service banner grab", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_http_methods", "HTTP 方法探测|HTTP methods probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_http_security", "HTTP 安全头分析|HTTP security headers", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_tls_versions", "TLS 版本探测|TLS version probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_ntp", "NTP 时间偏移|NTP time offset", Category.SECURITY, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_proxy", "系统代理配置|System proxy config", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_subnet_scan", "全子网存活扫描|Full subnet scan", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_mqtt", "MQTT Broker 探测|MQTT broker probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_http_paths", "Web 路径探测|Web path probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_tcp_concurrency", "并发连接测试|TCP concurrency test", Category.SECURITY, Measurand.COUNT, UnitDef.CHANNELS, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
         }.map { spec ->
             // 合规风险标注:采集数据在部分司法辖区可能受法律法规约束
@@ -293,6 +329,15 @@ object ProbeCatalog {
                 "net_portscan" to "端口扫描属主动网络探测,部分国家受网络安全法规约束|Port scanning is active network probing, regulated in some countries",
                 "net_http_fingerprint" to "指纹识别可能触及第三方服务信息|Fingerprinting may touch third-party service info",
                 "net_ssdp" to "组播发现会暴露周边设备信息|Multicast discovery exposes nearby device info",
+                "net_banner" to "服务识别可能触及第三方服务版本信息|Service identification may touch third-party version info",
+                "net_http_methods" to "方法探测属主动安全测试行为|HTTP method probing is an active security test",
+                "net_http_security" to "安全头分析属主动安全测试行为|Security-header analysis is an active security test",
+                "net_tls_versions" to "TLS 版本探测属主动安全测试行为|TLS version probing is an active security test",
+                "net_ntp" to "NTP 探测可能泄露本地时间信息|NTP probing may reveal local time info",
+                "net_subnet_scan" to "全子网扫描属高强度主动探测,部分国家受网络安全法规约束|Full subnet scanning is high-intensity probing, regulated in some countries",
+                "net_mqtt" to "MQTT 探测可能触及第三方服务|MQTT probing may touch third-party services",
+                "net_http_paths" to "路径枚举属主动安全测试行为|Path enumeration is an active security test",
+                "net_tcp_concurrency" to "并发连接测试属主动网络行为|Concurrency testing is active network behavior",
             )
             risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec
         }
