@@ -3,8 +3,8 @@ package com.vicinityprobe.ui.history
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.vicinityprobe.model.ReportMeta
 import com.vicinityprobe.report.HistoryManager
+import com.vicinityprobe.report.ReportMeta
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

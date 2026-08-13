@@ -1,37 +1,38 @@
 # VicinityProbe
 
-通过手机的几乎所有传感器与系统模块采集周遭环境信息,一键生成可视化环境数据报告。
+专业环境测量系统:通过手机全部传感器与系统模块进行**规范化的环境数据采集**,生成带数据质量门禁、原始样本存档与频谱分析的测量报告。
 
 ## 功能
 
-- **全量探测**: 传感器(加速度/陀螺/磁力/光照/气压/湿度/温度/计步/心率/手势等)、GPS+GNSS 卫星、WiFi/蜂窝/蓝牙、环境噪音、电池、设备系统共 40+ 项
-- **能力预检页**: 探测前枚举设备支持情况(✅支持 / ⚠️缺权限 / ❌无硬件),自定义勾选探测项
-- **环境分析**: 分维度评分(光照/噪音/温湿度/信号/定位)、综合环境分、场景推断(室内/户外/移动中)、Open-Meteo 天气对比、健康建议
-- **报告导出**: 应用内可视化 + JSON / Markdown / PNG 三种格式分享
-- **历史与对比**: 报告自动存档,支持重命名/删除/双报告对比
-- **连续监测**: 前台服务定时扫描,生成趋势图
+- **测量目录(44 项)**: 每个探测项定义被测量、SI 单位、标称采样率、量程 —— 运动学 / 环境物理量 / 磁场 / 生物信号 / 声学 / 定位与卫星 / 无线电 / 电气 / 系统资源 / 设备信息 / 上下文事件
+- **能力预检**: 运行时枚举硬件支持(✅/⚠️缺权限/❌无硬件),自定义测量计划
+- **数据质量门禁**: 每项输出 EXCELLENT/GOOD/DEGRADED/FAILED 等级 + 覆盖率 + 实际采样率 + 机器可读原因码
+- **专业统计**: 每通道 min/max/mean/stddev/RMS/CV + 分位数 p1/p5/p25/p50/p75/p95/p99
+- **专业分析**: 声学(LAeq/Lpeak/L10/L50/L90,AudioRecord 直接采集)、FFT 频谱分析(主导频率/平坦度/频带能量)、振动特征(ISO 2631 近似分级)、定位摘要、上下文分类
+- **原始样本存档**: 所有数值通道以 CSV 落盘(`samples/<probeId>/channel_<ch>.csv`)
+- **报告导出**: 版本化 schema 的 JSON + Markdown + ZIP(报告+原始样本)
+- **历史与对比**: 报告存档/重命名/删除,双报告统计量与属性逐项对比
+- **连续监测**: 前台服务定时测量,质量趋势图
 - 中英双语(跟随系统)
 
-> 每个探测项的探测内容、技术原理与结果计算方式详见 [docs/PROBES.md](docs/PROBES.md)。
+> 每个探测项的测量规范、技术原理与结果计算详见 [docs/PROBES.md](docs/PROBES.md)。
 
 ## 构建
 
 ```
-# 环境要求: JDK 17+, Android SDK 36 (platforms;android-36)
-export ANDROID_HOME=<sdk路径>   # 或写入 local.properties: sdk.dir=...
-./gradlew assembleDebug         # 产物: app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest     # 单元测试
-./gradlew lint                  # 静态检查
+# 环境要求: JDK 17+, Android SDK 36
+./gradlew assembleRelease     # 产物: app/build/outputs/apk/release/VicinityProbe-<version>.apk
+./gradlew testDebugUnitTest   # 单元测试(统计/FFT/分析/报告)
+./gradlew lint                # 静态检查
 ```
 
 ## 权限
 
-定位(FINE/COARSE)、邻近 WiFi 设备(NEARBY_WIFI_DEVICES)、蓝牙(BLUETOOTH_SCAN/CONNECT)、麦克风(RECORD_AUDIO)、活动识别(ACTIVITY_RECOGNITION)、生物传感器(BODY_SENSORS)、通知(POST_NOTIFICATIONS)、前台服务。所有权限均在应用内声明用途并可逐项拒绝,拒绝的模块会在报告中标注"权限缺失"而不中断扫描。
+定位、邻近 WiFi 设备、蓝牙扫描/连接、麦克风、活动识别、生物传感器、通知、前台服务。所有权限应用内声明用途并可逐项拒绝;被拒的探测项在报告中标注 `PERMISSION_DENIED` 而不中断测量。
 
-## 说明与边界
+## 边界(报告如实标注)
 
-- 噪音 dB 与磁场辐射等级为近似值(未专业校准),报告中已注明
-- 心率等生物传感器仅部分设备支持,预检页会如实标注
-- WiFi 扫描受系统节流限制(2 分钟 4 次),受限时报告会注明
-- thermal / CPU 频率等系统文件在多数设备上不可读,报告标注"权限受限"
-- 天气对比仅此一项联网(Open-Meteo,免费无 Key),其余数据全部本地采集
+- 声压级为未校准参考值(需设备级校准才具绝对意义)
+- thermal/CPU 频率等 `/sys` 文件多数设备无读权限
+- WiFi 扫描受系统节流限制
+- 全部数据本地采集,无任何联网(无遥测、无云同步)

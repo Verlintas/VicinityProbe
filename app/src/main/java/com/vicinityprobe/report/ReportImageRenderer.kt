@@ -6,124 +6,106 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
-import com.vicinityprobe.model.Groups
-import com.vicinityprobe.model.L
-import com.vicinityprobe.model.Labels
-import com.vicinityprobe.model.ProbeReport
-import com.vicinityprobe.model.ProbeStatus
+import com.vicinityprobe.model.domain.MeasurementReport
+import com.vicinityprobe.model.domain.QualityLevel
 import com.vicinityprobe.model.trBilingual
-import com.vicinityprobe.probe.fmt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/** 报告 PNG 渲染:按测量报告结构生成摘要图片 */
 object ReportImageRenderer {
     private const val W = 1080
     private const val PAD = 48
-    private const val LINE = 56
-    private const val SMALL = 44
+    private const val LINE = 54
 
-    fun render(report: ProbeReport, context: Context): Bitmap {
+    fun render(report: MeasurementReport, context: Context): Bitmap {
         val lang = context.resources.configuration.locales[0].language
         val zh = lang.startsWith("zh")
-        val t = { l: L -> if (zh) l.zh else l.en }
         val tb = { s: String -> trBilingual(s, lang) }
+        val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(report.plan.createdAt))
 
-        val lines = buildString {
-            appendLine("VicinityProbe")
-            appendLine("${t(L("环境数据报告", "Environment Data Report"))} | ${report.deviceName}")
-            appendLine(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(report.createdAt)))
-            appendLine("${t(L("时长", "Duration"))}: ${report.scanDurationMs / 1000}s | ${t(L("模式", "Mode"))}: ${if (report.mode == "FULL") t(L("全部", "FULL")) else t(L("自定义", "SELECTED"))}")
-            report.analysis?.let { a ->
-                appendLine("")
-                appendLine("★★ ${t(Labels.OVERALL)}: ${fmt(a.overallScore)}/100")
-                appendLine("${t(L("场景", "Scene"))}: ${tb(a.scene)}")
-                a.radar.forEach { appendLine("  ${tb(it.label)}: ${fmt(it.score)}") }
-                a.weather?.let { w ->
-                    if (w.fetched) {
-                        appendLine("${t(Labels.WEATHER)}: ${tb(w.conditionText ?: "")} ${fmt(w.temperatureC ?: 0.0)}°C ${fmt(w.humidityPct ?: 0.0)}% ${fmt(w.pressureHpa ?: 0.0)}hPa")
-                    } else {
-                        appendLine("${t(Labels.WEATHER)}: ${t(L("联网失败", "offline"))}")
-                    }
-                }
-                if (a.suggestions.isNotEmpty()) {
-                    appendLine("${t(Labels.SUGGESTIONS)}:")
-                    a.suggestions.forEach { appendLine("  - ${tb(it)}") }
-                }
+        val sb = StringBuilder()
+        sb.appendLine("VicinityProbe · Measurement Report (schema v${report.schemaVersion})")
+        sb.appendLine("${report.context.device} · Android ${report.context.androidVersion} (API ${report.context.apiLevel})")
+        sb.appendLine("$date · ${report.plan.durationMs / 1000}s · mode=${report.plan.operator}")
+        sb.appendLine("")
+        val byLevel = report.measurements.groupBy { it.quality.level }
+        sb.appendLine("EXCELLENT:${byLevel[QualityLevel.EXCELLENT]?.size ?: 0}  GOOD:${byLevel[QualityLevel.GOOD]?.size ?: 0}  DEGRADED:${byLevel[QualityLevel.DEGRADED]?.size ?: 0}  FAILED:${byLevel[QualityLevel.FAILED]?.size ?: 0}")
+        report.analysis?.let { a ->
+            a.acoustics?.let { ac ->
+                sb.appendLine("")
+                sb.appendLine("LAeq=${ac.laeqDBA?.let { "%.1f".format(it) } ?: "--"} dB(A)  Lpeak=${ac.lpeakDBA?.let { "%.1f".format(it) } ?: "--"}  L10/L50/L90=${ac.l10DBA?.let { "%.1f".format(it) }}/${ac.l50DBA?.let { "%.1f".format(it) }}/${ac.l90DBA?.let { "%.1f".format(it) }}")
             }
-            appendLine("")
-            Groups.ordered.forEach { group ->
-                val list = report.results.filter { it.group == group }
-                if (list.isEmpty()) return@forEach
-                appendLine("── ${t(Groups.label(group))} ──")
-                list.forEach { r ->
-                    val st = when (r.status) {
-                        ProbeStatus.OK -> "OK"
-                        ProbeStatus.NO_HARDWARE -> "N/A"
-                        ProbeStatus.PERMISSION_MISSING -> "PERM"
-                        ProbeStatus.FEATURE_OFF -> "OFF"
-                        ProbeStatus.FAILED -> "FAIL"
-                        ProbeStatus.SKIPPED -> "SKIP"
-                    }
-                    appendLine("${tb(r.name)} [$st]")
-                    r.note?.let { appendLine("  ${tb(it)}") }
-                    r.metrics.take(12).forEach { m ->
-                        appendLine("  ${tb(m.label)}: ${tb(m.value)}${m.unit?.let { " $it" } ?: ""}")
-                    }
-                    appendLine("")
-                }
+            a.vibration?.let { v ->
+                sb.appendLine("Vibration: f=${v.dominantFrequencyHz?.let { "%.1f".format(it) } ?: "--"}Hz  RMS=${v.rmsMs2?.let { "%.3f".format(it) } ?: "--"} m/s²")
+            }
+            a.positioning?.let { p ->
+                sb.appendLine("Position: acc=${p.horizontalAccuracyM?.let { "%.1f".format(it) } ?: "--"}m  sats=${p.satellitesUsed ?: "--"}/${p.satellitesVisible ?: "--"}  HDOP=${p.hdop?.let { "%.2f".format(it) } ?: "--"}")
+            }
+            a.contextClassification?.let { c ->
+                sb.appendLine("Context: ${c.classId} (${"%.0f".format(c.confidence * 100)}%)")
+            }
+        }
+        sb.appendLine("")
+        report.measurements.forEach { m ->
+            val name = tb(m.spec.name)
+            val q = m.quality.level.name
+            sb.appendLine("$name [$q]")
+            m.attributes.entries.sortedBy { it.key }.forEach { (k, v) ->
+                if (k != "detail") sb.appendLine("  $k: ${v.replace("\n", " ").take(90)}")
+            }
+            m.stats.entries.sortedBy { it.key }.forEach { (ch, s) ->
+                sb.appendLine("  $ch: n=${s.n} mean=${"%.3g".format(s.mean)} std=${"%.3g".format(s.stddev)} med=${"%.3g".format(s.median)} p95=${"%.3g".format(s.p95)}")
+            }
+            m.spectrum?.let { s ->
+                sb.appendLine("  FFT ${s.method}: dom=${"%.1f".format(s.dominantFrequencyHz)}Hz flat=${"%.2f".format(s.flatness)}")
             }
         }
 
-        val wrapped = wrap(lines.lines().filter { it.isNotEmpty() })
-        val height = wrapped.size * LINE + PAD * 2 + SMALL
+        val lines = wrap(sb.lines().filter { it.isNotEmpty() })
+        val height = lines.size * LINE + PAD * 2
         val bitmap = Bitmap.createBitmap(W, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.rgb(247, 250, 251))
 
         val title = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(11, 93, 110)
-            textSize = 64f
+            color = Color.rgb(11, 93, 110); textSize = 56f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(30, 40, 50)
-            textSize = 40f
-        }
-        val muted = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(110, 120, 130)
-            textSize = 34f
         }
         val header = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(11, 93, 110)
-            textSize = 44f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            color = Color.rgb(11, 93, 110); textSize = 40f
         }
+        val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(30, 40, 50); textSize = 34f }
+        val muted = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(110, 120, 130); textSize = 30f }
 
         var y = PAD.toFloat() + 40
-        val raw = lines.lines().filter { it.isNotEmpty() }
         var li = 0
-        for (rawLine in raw) {
-            val isTitle = li == 0
-            val isHeader = rawLine.startsWith("──") || rawLine.startsWith("★★")
-            canvas.drawText(rawLine, PAD.toFloat(), y, if (isTitle) title else if (isHeader) header else if (li <= 2) muted else body)
-            y += if (rawLine.startsWith("  - ")) LINE - 14 else LINE
+        for (line in lines) {
+            val paint = when {
+                li == 0 -> title
+                line.startsWith("  ") || line.contains(": n=") || line.startsWith("EXCELLENT:") ||
+                    line.startsWith("LAeq=") || line.startsWith("Vibration:") || line.startsWith("Position:") || line.startsWith("Context:") -> body
+                li <= 3 -> header
+                else -> muted
+            }
+            canvas.drawText(line, PAD.toFloat(), y, paint)
+            y += if (line.startsWith("  ")) LINE - 12 else LINE
             li++
         }
         return bitmap
     }
 
     private fun wrap(lines: List<String>): List<String> {
-        val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 40f }
         val out = ArrayList<String>()
         for (line in lines) {
-            if (line.length <= 52) {
+            if (line.length <= 58) {
                 out.add(line)
                 continue
             }
             var s = line
-            while (s.length > 52) {
-                var cut = 52
+            while (s.length > 58) {
+                var cut = 58
                 val idx = s.lastIndexOf(' ', cut)
                 if (idx > 20) cut = idx
                 out.add(s.substring(0, cut))

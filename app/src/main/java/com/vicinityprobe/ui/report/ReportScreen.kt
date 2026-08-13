@@ -1,6 +1,5 @@
 package com.vicinityprobe.ui.report
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +15,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,25 +33,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.vicinityprobe.model.Groups
 import com.vicinityprobe.model.L
-import com.vicinityprobe.model.Labels
-import com.vicinityprobe.model.ProbeReport
-import com.vicinityprobe.model.ProbeResult
+import com.vicinityprobe.model.domain.AcousticsSummary
+import com.vicinityprobe.model.domain.AnalysisSummary
+import com.vicinityprobe.model.domain.Measurement
+import com.vicinityprobe.model.domain.MeasurementReport
+import com.vicinityprobe.model.domain.PositioningSummary
+import com.vicinityprobe.model.domain.QualityLevel
+import com.vicinityprobe.model.domain.SpectrumResult
+import com.vicinityprobe.model.domain.VibrationSummary
 import com.vicinityprobe.model.langOf
 import com.vicinityprobe.model.trBilingual
-import com.vicinityprobe.probe.fmt
+import com.vicinityprobe.ui.components.KeyValueRow
 import com.vicinityprobe.ui.components.LineChart
-import com.vicinityprobe.ui.components.MetricGrid
-import com.vicinityprobe.ui.components.RadarChart
-import com.vicinityprobe.ui.components.StatusPill
-import com.vicinityprobe.ui.navigation.Routes
+import com.vicinityprobe.ui.components.QualityPill
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -63,7 +61,7 @@ import java.util.Locale
 fun ReportScreen(nav: NavController, reportId: String) {
     val context = LocalContext.current
     val lang = langOf(context)
-    val t = { l: L -> Labels.tr(lang, l) }
+    val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: ReportViewModel = viewModel()
 
     LaunchedEffect(reportId) { vm.load(reportId) }
@@ -72,7 +70,7 @@ fun ReportScreen(nav: NavController, reportId: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(t(L("环境数据报告", "Environment Report"))) },
+                title = { Text(t(L("测量报告", "Measurement Report"))) },
                 navigationIcon = { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.ArrowBack, contentDescription = "back") } },
             )
         },
@@ -92,49 +90,11 @@ fun ReportScreen(nav: NavController, reportId: String) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ReportHeader(r, lang)
-            r.analysis?.let { a ->
-                if (a.radar.size >= 3) {
-                    Card {
-                        Column(Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(t(Labels.OVERALL), style = MaterialTheme.typography.titleMedium)
-                            Text("${fmt(a.overallScore)}/100", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
-                            Text(t(L("场景推断", "Scene")) + ": ${trBilingual(a.scene, lang)}", style = MaterialTheme.typography.bodyMedium)
-                            RadarChart(a.radar.map { trBilingual(it.label, lang) to it.score })
-                        }
-                    }
-                }
-                a.weather?.let { w ->
-                    OutlinedCard {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(t(Labels.WEATHER), style = MaterialTheme.typography.titleSmall)
-                            if (w.fetched) {
-                                Text("${trBilingual(w.conditionText ?: "", lang)} | ${fmt(w.temperatureC ?: 0.0)}°C | ${fmt(w.humidityPct ?: 0.0)}% | ${fmt(w.pressureHpa ?: 0.0)}hPa | ${fmt(w.windSpeedKph ?: 0.0)}km/h")
-                                Text(t(L("本地", "Local")) + ": ${localMetric(r, "sensor.temperature", "avg", "°C")} | ${localMetric(r, "sensor.humidity", "avg", "%")} | ${localMetric(r, "sensor.pressure", "avg", "hPa")}", style = MaterialTheme.typography.labelSmall)
-                            } else {
-                                Text(t(L("联网获取失败", "Failed to fetch weather")) + (w.note?.let { " ($it)" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
-                }
-                if (a.suggestions.isNotEmpty()) {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(t(Labels.SUGGESTIONS), style = MaterialTheme.typography.titleSmall)
-                            a.suggestions.forEach { Text("• ${trBilingual(it, lang)}", style = MaterialTheme.typography.bodySmall) }
-                        }
-                    }
-                }
-            }
-
+            PlanHeader(r, lang)
+            QualitySummary(r)
+            r.analysis?.let { AnalysisSection(it, lang) }
             HorizontalDivider()
-
-            Groups.ordered.forEach { group ->
-                val list = r.results.filter { it.group == group }
-                if (list.isEmpty()) return@forEach
-                Text(t(Groups.label(group)), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                list.forEach { pr -> ProbeCard(pr, lang) }
-            }
+            r.measurements.forEach { m -> MeasurementCard(m, lang, reportId) }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { vm.exportJson()?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "application/json") } }, modifier = Modifier.weight(1f)) {
@@ -143,9 +103,9 @@ fun ReportScreen(nav: NavController, reportId: String) {
                 OutlinedButton(onClick = { vm.exportMd(lang)?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "text/markdown") } }, modifier = Modifier.weight(1f)) {
                     Text("MD")
                 }
-                Button(onClick = { vm.exportPng()?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "image/png") } }, modifier = Modifier.weight(1f)) {
+                Button(onClick = { vm.exportZip()?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "application/zip") } }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Filled.Share, contentDescription = null)
-                    Text(" PNG")
+                    Text(" RAW")
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -154,16 +114,14 @@ fun ReportScreen(nav: NavController, reportId: String) {
 }
 
 @Composable
-private fun ReportHeader(r: ProbeReport, lang: String) {
-    val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(r.createdAt))
+private fun PlanHeader(r: MeasurementReport, lang: String) {
+    val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(r.plan.createdAt))
     OutlinedCard {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(r.deviceName, style = MaterialTheme.typography.titleMedium)
+            Text("schema v${r.schemaVersion} · ${r.context.device}", style = MaterialTheme.typography.titleMedium)
             Text(date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                (if (r.mode == "FULL") trBilingual("全部探测+分析|Full scan", lang) else trBilingual("自定义探测|Selected probes", lang)) +
-                    " · ${r.scanDurationMs / 1000}s · " +
-                    r.results.count { it.status == com.vicinityprobe.model.ProbeStatus.OK }.toString() + "/" + r.results.size + " OK",
+                "Android ${r.context.androidVersion} (API ${r.context.apiLevel}) · ${r.plan.durationMs / 1000}s · ${r.plan.operator}",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -171,30 +129,144 @@ private fun ReportHeader(r: ProbeReport, lang: String) {
 }
 
 @Composable
-private fun ProbeCard(pr: ProbeResult, lang: String) {
-    var expanded by remember { mutableStateOf(pr.metrics.size <= 8) }
-    OutlinedCard(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(trBilingual(pr.name, lang), style = MaterialTheme.typography.titleSmall)
-                StatusPill(pr.status)
-            }
-            if (pr.note != null && pr.note != pr.name) {
-                Text(trBilingual(pr.note, lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (expanded) {
-                if (pr.metrics.isNotEmpty()) MetricGrid(pr.metrics, lang)
-                pr.series.forEach { (key, pts) ->
-                    LineChart(pts, trBilingual(pr.metrics.firstOrNull { it.key == key }?.label ?: key, lang), "")
+private fun QualitySummary(r: MeasurementReport) {
+    val counts = r.measurements.groupBy { it.quality.level }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        listOf(
+            QualityLevel.EXCELLENT to (counts[QualityLevel.EXCELLENT]?.size ?: 0),
+            QualityLevel.GOOD to (counts[QualityLevel.GOOD]?.size ?: 0),
+            QualityLevel.DEGRADED to (counts[QualityLevel.DEGRADED]?.size ?: 0),
+            QualityLevel.FAILED to (counts[QualityLevel.FAILED]?.size ?: 0),
+        ).forEach { (level, count) ->
+            Card(Modifier.weight(1f)) {
+                Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    QualityPill(level)
+                    Text(count.toString(), style = MaterialTheme.typography.titleLarge)
                 }
-            } else {
-                Text("${pr.metrics.size} ${trBilingual("项指标|metrics", lang)} · ${trBilingual("展开查看|Tap to expand", lang)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
-private fun localMetric(r: ProbeReport, id: String, key: String, unit: String): String {
-    val m = r.results.firstOrNull { it.id == id }?.metrics?.firstOrNull { it.key == key }
-    return if (m != null) "${m.value}${m.unit ?: unit}" else "—"
+@Composable
+private fun AnalysisSection(a: AnalysisSummary, lang: String) {
+    a.acoustics?.let { AcousticsCard(it, lang) }
+    a.vibration?.let { VibrationCard(it, lang) }
+    a.positioning?.let { PositioningCard(it, lang) }
+    a.contextClassification?.let { c ->
+        OutlinedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(tb("上下文分类|Context classification", lang), style = MaterialTheme.typography.titleSmall)
+                KeyValueRow("class", c.classId, primary = true)
+                KeyValueRow("confidence", String.format("%.0f%%", c.confidence * 100))
+                c.features.forEach { (k, v) -> KeyValueRow(k, v) }
+            }
+        }
+    }
 }
+
+@Composable
+private fun AcousticsCard(a: AcousticsSummary, lang: String) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(tb("声学分析|Acoustics", lang), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            KeyValueRow("LAeq", a.laeqDBA?.let { String.format("%.1f dB(A)", it) } ?: "—", primary = true)
+            KeyValueRow("Lpeak", a.lpeakDBA?.let { String.format("%.1f dB(A)", it) } ?: "—")
+            KeyValueRow("L10 / L50 / L90", listOf(a.l10DBA, a.l50DBA, a.l90DBA).joinToString(" / ") { it?.let { v -> String.format("%.1f", v) } ?: "—" })
+            KeyValueRow("calibrated", a.calibrated.toString())
+        }
+    }
+}
+
+@Composable
+private fun VibrationCard(v: VibrationSummary, lang: String) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(tb("振动分析|Vibration", lang), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            KeyValueRow("dominant_freq", v.dominantFrequencyHz?.let { String.format("%.1f Hz", it) } ?: "—", primary = true)
+            KeyValueRow("rms", v.rmsMs2?.let { String.format("%.3f m/s²", it) } ?: "—")
+            KeyValueRow("crest_factor", v.crestFactor?.let { String.format("%.2f", it) } ?: "—")
+            v.vibrationLevel?.let { KeyValueRow("level", tb(it, lang)) }
+        }
+    }
+}
+
+@Composable
+private fun PositioningCard(p: PositioningSummary, lang: String) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(tb("定位分析|Positioning", lang), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            KeyValueRow("accuracy", p.horizontalAccuracyM?.let { String.format("%.1f m", it) } ?: "—", primary = true)
+            KeyValueRow("satellites", p.satellitesUsed?.let { "$it / ${p.satellitesVisible ?: "—"}" } ?: "—")
+            KeyValueRow("hdop", p.hdop?.let { String.format("%.2f", it) } ?: "—")
+        }
+    }
+}
+
+@Composable
+private fun MeasurementCard(m: Measurement, lang: String, reportId: String) {
+    var expanded by remember { mutableStateOf(false) }
+    OutlinedCard(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(trBilingual(m.spec.name, lang), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "${m.spec.measurand} · ${m.spec.unit.symbol}" +
+                            if (m.spec.nominalRateHz > 0) " · ${String.format("%.0f Hz", m.spec.nominalRateHz)}" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                QualityPill(m.quality.level)
+            }
+            if (m.quality.detail.isNotBlank()) {
+                Text(trBilingual(m.quality.detail, lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (expanded) {
+                KeyValueRow("quality_code", m.quality.code + " · coverage " + String.format("%.0f%%", m.quality.coveragePct))
+                KeyValueRow("samples", m.quality.sampleCount.toString() + " · " + String.format("%.1f Hz", m.quality.achievedRateHz))
+                m.attributes.entries.sortedBy { it.key }.forEach { (k, v) ->
+                    if (k != "detail" && k != "note") KeyValueRow(k, v)
+                }
+                if (m.stats.isNotEmpty()) {
+                    Text(tb("统计量|Statistics", lang), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    m.stats.entries.sortedBy { it.key }.forEach { (ch, s) ->
+                        KeyValueRow(ch, "n=${s.n}  mean=${"%.4g".format(s.mean)}  σ=${"%.4g".format(s.stddev)}  med=${"%.4g".format(s.median)}  p95=${"%.4g".format(s.p95)}")
+                    }
+                }
+                m.spectrum?.let { SpectrumBlock(it, lang) }
+                m.series.forEach { (k, pts) ->
+                    LineChart(pts, k, m.spec.unit.symbol)
+                }
+                m.attributes["detail"]?.let {
+                    Text(it.take(800), style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                }
+                if (m.samplesFile != null) {
+                    Text(tb("原始样本已存档|Raw samples archived: ", lang) + m.samplesFile, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                Text(
+                    "${m.attributes.size} attrs · ${m.stats.size} channels" + (m.spectrum?.let { " · FFT ${String.format("%.0f Hz", it.dominantFrequencyHz)}" } ?: "") +
+                        " · ${tb("点击展开|Tap to expand", lang)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpectrumBlock(s: SpectrumResult, lang: String) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(tb("频谱分析|Spectrum", lang) + " (${s.method})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            KeyValueRow("dominant", String.format("%.2f Hz", s.dominantFrequencyHz), primary = true)
+            KeyValueRow("flatness", String.format("%.3f", s.flatness))
+            s.bandEnergy.forEach { (k, v) -> KeyValueRow("band_$k", String.format("%.1f%%", v)) }
+        }
+    }
+}
+
+private fun tb(s: String, lang: String): String = trBilingual(s, lang)

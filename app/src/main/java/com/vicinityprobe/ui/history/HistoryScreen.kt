@@ -37,10 +37,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.vicinityprobe.model.L
 import com.vicinityprobe.model.Labels
-import com.vicinityprobe.model.ReportMeta
 import com.vicinityprobe.model.langOf
-import com.vicinityprobe.model.trBilingual
-import com.vicinityprobe.probe.fmt
+import com.vicinityprobe.report.ReportMeta
 import com.vicinityprobe.ui.navigation.Routes
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -81,8 +79,9 @@ fun HistoryScreen(nav: NavController) {
                         supportingContent = {
                             Text(
                                 SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(meta.createdAt)) +
-                                    " · ${meta.probeCount}${t(L("项", " probes"))} · " +
-                                    meta.overallScore?.let { "评分 ${fmt(it)}" } ?: "",
+                                    " · ${meta.probeCount} probes" +
+                                    " · EXC ${meta.excellentCount} / DEG ${meta.degradedCount} / FAIL ${meta.failedCount}" +
+                                    if (meta.samplesKept) " · RAW" else "",
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },

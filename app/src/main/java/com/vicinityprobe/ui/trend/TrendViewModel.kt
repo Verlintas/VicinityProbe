@@ -4,8 +4,8 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.vicinityprobe.model.ReportMeta
 import com.vicinityprobe.report.HistoryManager
+import com.vicinityprobe.report.ReportMeta
 import com.vicinityprobe.service.MonitoringService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

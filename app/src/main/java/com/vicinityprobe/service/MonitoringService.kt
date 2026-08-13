@@ -10,9 +10,9 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.vicinityprobe.MainActivity
 import com.vicinityprobe.R
-import com.vicinityprobe.analysis.Analyzer
-import com.vicinityprobe.analysis.WeatherClient
-import com.vicinityprobe.probe.ProbeController
+import com.vicinityprobe.analysis.AnalysisEngine
+import com.vicinityprobe.model.domain.QualityLevel
+import com.vicinityprobe.probe.SessionController
 import com.vicinityprobe.report.HistoryManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +21,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 
 class MonitoringService : Service() {
     companion object {
@@ -56,16 +57,16 @@ class MonitoringService : Service() {
 
     private fun startMonitoring() {
         createChannel()
-        startForeground(NOTIFICATION_ID, buildNotification("VicinityProbe", "0 次监测"))
+        startForeground(NOTIFICATION_ID, buildNotification("VicinityProbe", "monitoring idle"))
         if (job?.isActive == true) return
         job = scope.launch {
             var count = 0
             while (isActive) {
                 count++
                 val meta = runOneScan()
-                val score = meta?.overallScore
-                val text = "${count} 次监测完成" + (score?.let { " | 评分 ${"%.0f".format(it)}" } ?: "")
-                updateNotification(count, score)
+                val text = "$count scan done" + (meta?.let { " | EXC ${it.excellentCount} / OK ${it.okCount}" } ?: " | FAILED")
+                getSystemService(NotificationManager::class.java)
+                    .notify(NOTIFICATION_ID, buildNotification("VicinityProbe · monitoring", text))
                 delay(intervalMinutes * 60_000L)
             }
         }
@@ -78,25 +79,18 @@ class MonitoringService : Service() {
         stopSelf()
     }
 
-    private suspend fun runOneScan(): com.vicinityprobe.model.ReportMeta? {
+    private suspend fun runOneScan(): com.vicinityprobe.report.ReportMeta? {
         return try {
-            val controller = ProbeController(applicationContext, CORE_PROBES, SCAN_MS, "MONITOR")
-            val report = controller.run()
-            val lat = report.results.firstOrNull { it.id == "location" }
-                ?.metrics?.firstOrNull { it.key == "lat" }?.value
-                ?.let { Regex("-?\\d+\\.?\\d*").find(it)?.value?.toDoubleOrNull() }
-            val lon = report.results.firstOrNull { it.id == "location" }
-                ?.metrics?.firstOrNull { it.key == "lon" }?.value
-                ?.let { Regex("-?\\d+\\.?\\d*").find(it)?.value?.toDoubleOrNull() }
-            val weather = if (lat != null && lon != null) WeatherClient.fetch(lat, lon) else null
-            val analyzed = report.copy(analysis = Analyzer.analyze(report, weather))
+            val controller = SessionController(applicationContext, CORE_PROBES, SCAN_MS, "MONITOR")
+            val report = controller.run(File(applicationContext.filesDir, "reports"))
+            val analyzed = report.copy(analysis = AnalysisEngine.analyze(report))
             HistoryManager(applicationContext).save(analyzed)
         } catch (_: Throwable) { null }
     }
 
     private fun createChannel() {
         val channel = NotificationChannel(
-            CHANNEL_ID, "连续监测", NotificationManager.IMPORTANCE_LOW,
+            CHANNEL_ID, "Continuous monitoring", NotificationManager.IMPORTANCE_LOW,
         )
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
@@ -115,15 +109,9 @@ class MonitoringService : Service() {
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(contentIntent)
-            .addAction(0, "停止", stopIntent)
+            .addAction(0, "Stop", stopIntent)
             .setOngoing(true)
             .build()
-    }
-
-    private fun updateNotification(count: Int, score: Double?) {
-        val text = "$count 次监测完成" + (score?.let { " | 评分 ${"%.0f".format(it)}" } ?: "")
-        getSystemService(NotificationManager::class.java)
-            .notify(NOTIFICATION_ID, buildNotification("VicinityProbe · 连续监测中", text))
     }
 
     override fun onDestroy() {

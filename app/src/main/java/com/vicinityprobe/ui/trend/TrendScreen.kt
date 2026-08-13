@@ -35,10 +35,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.vicinityprobe.model.L
 import com.vicinityprobe.model.Labels
-import com.vicinityprobe.model.SeriesPoint
+import com.vicinityprobe.model.domain.SeriesPt
 import com.vicinityprobe.model.langOf
-import com.vicinityprobe.model.trBilingual
-import com.vicinityprobe.probe.fmt
+import com.vicinityprobe.report.ReportMeta
 import com.vicinityprobe.ui.components.LineChart
 import com.vicinityprobe.ui.navigation.Routes
 import java.text.SimpleDateFormat
@@ -102,9 +101,14 @@ fun TrendScreen(nav: NavController) {
             }
             if (items.size >= 2) {
                 item {
-                    Text(t(L("综合评分趋势", "Overall score trend")), style = MaterialTheme.typography.titleSmall)
-                    val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPoint(i.toLong(), m.overallScore ?: 0.0) }
-                    LineChart(pts, t(L("评分", "Score")), "")
+                    Text(t(L("EXCELLENT 质量探测项趋势", "EXCELLENT quality probes trend")), style = MaterialTheme.typography.titleSmall)
+                    val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPt(i.toLong(), m.excellentCount.toDouble()) }
+                    LineChart(pts, t(L("EXCELLENT 项数", "EXCELLENT count")), "")
+                }
+                item {
+                    Text(t(L("数据质量等级趋势", "Quality level trend")), style = MaterialTheme.typography.titleSmall)
+                    val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPt(i.toLong(), m.okCount.toDouble()) }
+                    LineChart(pts, t(L("OK 项数", "OK count")), "")
                 }
             }
             item {
@@ -116,7 +120,7 @@ fun TrendScreen(nav: NavController) {
                         Text(meta.name, style = MaterialTheme.typography.titleSmall)
                         Text(
                             SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(meta.createdAt)) +
-                                (meta.overallScore?.let { " · ${t(L("评分", "score"))}: ${fmt(it)}" } ?: ""),
+                                " · EXC ${meta.excellentCount} / DEG ${meta.degradedCount} / FAIL ${meta.failedCount}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

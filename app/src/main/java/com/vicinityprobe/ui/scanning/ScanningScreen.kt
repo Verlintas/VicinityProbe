@@ -30,18 +30,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.vicinityprobe.model.L
-import com.vicinityprobe.model.Labels
 import com.vicinityprobe.model.langOf
+import com.vicinityprobe.probe.SessionUiState
 import com.vicinityprobe.ui.navigation.Routes
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationMs: Long) {
     val context = LocalContext.current
     val lang = langOf(context)
-    val t = { l: L -> Labels.tr(lang, l) }
+    val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: ScanViewModel = viewModel()
 
     LaunchedEffect(Unit) { vm.start(ids, mode, durationMs) }
@@ -66,7 +64,7 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
                 val remaining = ((s.durationMs - s.elapsedMs).toDouble() / 1000.0).coerceAtLeast(0.0)
                 CircularProgressIndicator(progress = { (s.elapsedMs.toFloat() / s.durationMs).coerceIn(0f, 1f) }, modifier = Modifier.height(96.dp).padding(vertical = 8.dp))
                 Text("${"%.0f".format(remaining)} s", style = MaterialTheme.typography.headlineMedium)
-                Text("${s.doneCount}/${s.totalCount} ${t(L("个模块", "modules"))}", style = MaterialTheme.typography.bodyMedium)
+                Text("${s.completedUnits}/${s.totalUnits} ${t(L("个模块", "modules"))}", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),

@@ -22,11 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,9 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.vicinityprobe.model.Groups
 import com.vicinityprobe.model.L
-import com.vicinityprobe.model.Labels
+import com.vicinityprobe.model.domain.Category
 import com.vicinityprobe.model.langOf
 import com.vicinityprobe.probe.Capability
 import com.vicinityprobe.probe.CapabilityProbe
@@ -48,7 +44,7 @@ import com.vicinityprobe.ui.navigation.Routes
 fun PreflightScreen(nav: NavController) {
     val context = LocalContext.current
     val lang = langOf(context)
-    val t = { l: L -> Labels.tr(lang, l) }
+    val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
 
     val caps = remember { CapabilityProbe.enumerate(context) }
     val selected = remember {
@@ -64,7 +60,7 @@ fun PreflightScreen(nav: NavController) {
     val selectedCount = selected.values.count { it }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(t(L("能力预检与选择", "Preflight & selection"))) }) },
+        topBar = { TopAppBar(title = { Text(t(L("能力预检与测量计划", "Preflight & measurement plan"))) }) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -76,7 +72,7 @@ fun PreflightScreen(nav: NavController) {
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    t(L("本设备可探测", "This device supports")) + ": $supported/${caps.size} ${t(L("项", "probes"))}",
+                    t(L("本设备可探测", "This device supports")) + ": $supported/${caps.size}",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 TextButton(onClick = {
@@ -84,11 +80,11 @@ fun PreflightScreen(nav: NavController) {
                 }) { Text(t(L("全选可用", "Select all"))) }
             }
 
-            Groups.ordered.forEach { group ->
-                val groupCaps = caps.filter { it.group == group }
+            Category.entries.forEach { category ->
+                val groupCaps = caps.filter { it.spec.category == category }
                 if (groupCaps.isEmpty()) return@forEach
                 HorizontalDivider()
-                Text(t(Groups.label(group)), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                Text(category.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                 groupCaps.forEach { cap -> CapabilityRow(cap, selected[cap.probeId] ?: false, { v -> selected[cap.probeId] = v }, permissionLauncher::launch) }
             }
 
@@ -100,7 +96,7 @@ fun PreflightScreen(nav: NavController) {
                 enabled = selectedCount > 0,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
-                Text(t(L("确认探测", "Start scan")) + " ($selectedCount)")
+                Text(t(L("开始测量", "Start measurement")) + " ($selectedCount)")
             }
         }
     }
@@ -114,6 +110,7 @@ private fun CapabilityRow(
     requestPermission: (Array<String>) -> Unit,
 ) {
     val context = LocalContext.current
+    val lang = langOf(context)
     val canSelect = cap.status == CapabilityStatus.SUPPORTED
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(
@@ -123,17 +120,23 @@ private fun CapabilityRow(
         )
         Column(Modifier.weight(1f)) {
             Text(
-                Labels.tr(langOf(context), cap.name),
+                if (lang.startsWith("zh")) cap.name.zh else cap.name.en,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (canSelect) MaterialTheme.colorScheme.onSurface else Color.Gray,
             )
+            Text(
+                "${cap.spec.measurand} · ${cap.spec.unit.symbol}" +
+                    if (cap.spec.nominalRateHz > 0) " · ${"%.0f".format(cap.spec.nominalRateHz)}Hz" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             when (cap.status) {
                 CapabilityStatus.SUPPORTED -> {}
-                CapabilityStatus.NO_HARDWARE -> Text("— ${Labels.tr(langOf(context), Labels.NO_HARDWARE)}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                CapabilityStatus.FEATURE_OFF -> Text("— ${Labels.tr(langOf(context), Labels.FEATURE_OFF)}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFE65100))
+                CapabilityStatus.NO_HARDWARE -> Text("— no hardware", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                CapabilityStatus.FEATURE_OFF -> Text("— feature off", style = MaterialTheme.typography.labelSmall, color = Color(0xFFE65100))
                 CapabilityStatus.PERMISSION_MISSING -> {
                     Text(
-                        Labels.tr(langOf(context), Labels.PERMISSION_MISSING) + " (" + cap.requiredPermissions.joinToString(", ") { PermsLabel(it) } + ")",
+                        "— permission: " + cap.requiredPermissions.joinToString(", "),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -142,20 +145,9 @@ private fun CapabilityRow(
                             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
                         }.toTypedArray()
                         if (missing.isNotEmpty()) requestPermission(missing)
-                    }) { Text(Labels.tr(langOf(context), L("去授权", "Grant"))) }
+                    }) { Text("grant") }
                 }
             }
         }
     }
-}
-
-private fun PermsLabel(p: String): String = when (p) {
-    android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION -> "Location"
-    android.Manifest.permission.NEARBY_WIFI_DEVICES -> "Nearby WiFi"
-    android.Manifest.permission.BLUETOOTH_SCAN -> "BT scan"
-    android.Manifest.permission.BLUETOOTH_CONNECT -> "BT connect"
-    android.Manifest.permission.RECORD_AUDIO -> "Mic"
-    android.Manifest.permission.ACTIVITY_RECOGNITION -> "Activity"
-    android.Manifest.permission.BODY_SENSORS -> "Body sensors"
-    else -> p
 }

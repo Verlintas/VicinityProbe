@@ -38,11 +38,7 @@ import com.vicinityprobe.model.L
 import com.vicinityprobe.model.Labels
 import com.vicinityprobe.model.langOf
 import com.vicinityprobe.model.trBilingual
-import com.vicinityprobe.probe.fmt
-import com.vicinityprobe.ui.components.StatusPill
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.vicinityprobe.report.ReportMeta
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,17 +71,17 @@ fun CompareScreen(nav: NavController) {
             val r = result
             if (r != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("评分: ${r.scoreA?.let { fmt(it) } ?: "—"} → ${r.scoreB?.let { fmt(it) } ?: "—"}")
-                    Text("OK ${r.okCountA} → ${r.okCountB}")
+                    Text("EXCELLENT: ${r.excellentA} → ${r.excellentB}")
+                    Text("OK: ${r.okA} → ${r.okB}")
                 }
                 if (r.rows.isEmpty()) {
-                    Text(t(L("两份报告的公共指标无差异", "No common metric differences")), style = MaterialTheme.typography.bodyMedium)
+                    Text(t(L("两份报告的共有指标无差异", "No common metric differences")), style = MaterialTheme.typography.bodyMedium)
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(r.rows, key = { "${it.probeName}_${it.metricLabel}" }) { row ->
+                        items(r.rows, key = { "${it.probeName}_${it.channel}_${it.stat}" }) { row ->
                             Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                                 Text(
-                                    "${trBilingual(row.probeName, lang)} · ${trBilingual(row.metricLabel, lang)}",
+                                    "${trBilingual(row.probeName, lang)} · ${row.channel} · ${row.stat}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -108,7 +104,7 @@ fun CompareScreen(nav: NavController) {
 @Composable
 private fun ReportPicker(
     modifier: Modifier,
-    items: List<com.vicinityprobe.model.ReportMeta>,
+    items: List<ReportMeta>,
     selectedId: String?,
     onSelect: (String?) -> Unit,
     placeholder: String,

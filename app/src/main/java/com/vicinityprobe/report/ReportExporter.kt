@@ -3,19 +3,20 @@ package com.vicinityprobe.report
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
-import com.vicinityprobe.model.ProbeReport
-import com.vicinityprobe.model.ProbeStatus
+import com.vicinityprobe.model.domain.MeasurementReport
 import java.io.File
 
 object ReportExporter {
-    fun writeJson(context: Context, report: ProbeReport): File {
-        val f = File(context.filesDir, "reports/${report.id}.json")
+    fun writeJson(context: Context, report: MeasurementReport): File {
+        val f = File(context.filesDir, "reports/${report.id}/report.json")
+        f.parentFile?.mkdirs()
         f.writeText(JsonReport.encode(report))
         return f
     }
 
-    fun writeMarkdown(context: Context, report: ProbeReport, lang: String): File {
-        val f = File(context.filesDir, "reports/${report.id}.md")
+    fun writeMarkdown(context: Context, report: MeasurementReport, lang: String): File {
+        val f = File(context.filesDir, "reports/${report.id}/${report.id}.md")
+        f.parentFile?.mkdirs()
         f.writeText(MarkdownWriter.write(report, lang))
         return f
     }
@@ -30,24 +31,21 @@ object ReportExporter {
         context.startActivity(Intent.createChooser(intent, null))
     }
 
-    fun writePng(context: Context, report: ProbeReport): File {
-        val bitmap = ReportImageRenderer.render(report, context)
-        val f = File(context.filesDir, "reports/${report.id}.png")
-        f.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        bitmap.recycle()
-        return f
-    }
-
-    fun trStatus(context: Context, status: ProbeStatus): String {
-        val lang = context.resources.configuration.locales[0].language
-        val zh = lang.startsWith("zh")
-        return when (status) {
-            ProbeStatus.OK -> if (zh) "正常" else "OK"
-            ProbeStatus.NO_HARDWARE -> if (zh) "设备不支持" else "Not supported"
-            ProbeStatus.PERMISSION_MISSING -> if (zh) "缺少权限" else "Permission required"
-            ProbeStatus.FEATURE_OFF -> if (zh) "功能未开启" else "Feature off"
-            ProbeStatus.FAILED -> if (zh) "采集失败" else "Failed"
-            ProbeStatus.SKIPPED -> if (zh) "未探测" else "Skipped"
+    /** 导出报告目录(JSON + 原始样本 CSV)为 zip 共享 */
+    fun shareZip(context: Context, report: MeasurementReport): File? {
+        val reportDir = File(context.filesDir, "reports/${report.id}")
+        if (!reportDir.exists()) return null
+        val zipFile = File(context.cacheDir, "${report.id}.zip")
+        zipFile.outputStream().use { out ->
+            java.util.zip.ZipOutputStream(out).use { zos ->
+                reportDir.walkTopDown().filter { it.isFile }.forEach { f ->
+                    val entryName = f.relativeTo(reportDir).path
+                    zos.putNextEntry(java.util.zip.ZipEntry(entryName))
+                    f.inputStream().use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+            }
         }
+        return zipFile
     }
 }

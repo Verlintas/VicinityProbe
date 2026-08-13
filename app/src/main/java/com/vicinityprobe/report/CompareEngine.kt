@@ -1,70 +1,65 @@
 package com.vicinityprobe.report
 
-import com.vicinityprobe.model.Groups
-import com.vicinityprobe.model.ProbeReport
-import com.vicinityprobe.model.ProbeStatus
+import com.vicinityprobe.model.domain.MeasurementReport
 import com.vicinityprobe.model.trBilingual
 
 data class CompareRow(
-    val group: String,
     val probeName: String,
-    val metricLabel: String,
+    val channel: String,
+    val stat: String,
     val valueA: String,
     val valueB: String,
-    val changed: Boolean,
 )
 
 data class CompareResult(
-    val scoreA: Double?,
-    val scoreB: Double?,
-    val okCountA: Int,
-    val okCountB: Int,
     val rows: List<CompareRow>,
+    val excellentA: Int,
+    val excellentB: Int,
+    val okA: Int,
+    val okB: Int,
 )
 
+/** 双报告对比:对共有测量项的共有通道统计量与属性逐项对比 */
 object CompareEngine {
-    fun compare(a: ProbeReport, b: ProbeReport): CompareResult {
+    fun compare(a: MeasurementReport, b: MeasurementReport): CompareResult {
         val rows = ArrayList<CompareRow>()
-        val byIdA = a.results.associateBy { it.id }
-        val byIdB = b.results.associateBy { it.id }
-        val ids = (byIdA.keys + byIdB.keys)
-            .filter { it in byIdA && it in byIdB }
-            .sortedBy { Groups.ordered.indexOf(byIdA[it]!!.group) }
+        val byIdA = a.measurements.associateBy { it.spec.id }
+        val byIdB = b.measurements.associateBy { it.spec.id }
 
-        for (id in ids) {
-            val ra = byIdA[id]!!
-            val rb = byIdB[id]!!
-            val aMetrics = ra.metrics.associateBy { it.key }
-            val bMetrics = rb.metrics.associateBy { it.key }
-            val keys = aMetrics.keys + bMetrics.keys
-            for (key in keys) {
-                val ma = aMetrics[key]
-                val mb = bMetrics[key]
-                if (ma == null || mb == null) continue
-                val va = ma.value.trim()
-                val vb = mb.value.trim()
-                if (va == vb) continue
-                rows.add(
-                    CompareRow(
-                        group = ra.group,
-                        probeName = ra.name,
-                        metricLabel = ma.label,
-                        valueA = va,
-                        valueB = vb,
-                        changed = true,
-                    )
-                )
+        for (id in (byIdA.keys intersect byIdB.keys).sorted()) {
+            val ma = byIdA[id]!!
+            val mb = byIdB[id]!!
+            val name = trBilingual(ma.spec.name, "en") + "|" + trBilingual(ma.spec.name, "zh")
+            val channels = ma.stats.keys intersect mb.stats.keys
+            for (ch in channels.sorted()) {
+                val sa = ma.stats[ch]!!
+                val sb = mb.stats[ch]!!
+                listOf(
+                    "mean" to (sa.mean to sb.mean),
+                    "min" to (sa.min to sb.min),
+                    "max" to (sa.max to sb.max),
+                    "median" to (sa.median to sb.median),
+                    "p95" to (sa.p95 to sb.p95),
+                    "rms" to (sa.rms to sb.rms),
+                ).forEach { (stat, pair) ->
+                    if (kotlin.math.abs(pair.first - pair.second) > 1e-9) {
+                        rows.add(CompareRow(name, ch, stat, "%.4g".format(pair.first), "%.4g".format(pair.second)))
+                    }
+                }
             }
-            if (ra.status != rb.status) {
-                rows.add(CompareRow(ra.group, ra.name, "status", ra.status.name, rb.status.name, true))
+            val attrs = ma.attributes.keys intersect mb.attributes.keys
+            for (k in attrs.sorted()) {
+                val va = ma.attributes[k]!!
+                val vb = mb.attributes[k]!!
+                if (va != vb) rows.add(CompareRow(name, k, "attr", va, vb))
             }
         }
         return CompareResult(
-            scoreA = a.analysis?.overallScore,
-            scoreB = b.analysis?.overallScore,
-            okCountA = a.results.count { it.status == ProbeStatus.OK },
-            okCountB = b.results.count { it.status == ProbeStatus.OK },
-            rows = rows.sortedBy { it.probeName },
+            rows = rows,
+            excellentA = a.measurements.count { it.quality.level == com.vicinityprobe.model.domain.QualityLevel.EXCELLENT },
+            excellentB = b.measurements.count { it.quality.level == com.vicinityprobe.model.domain.QualityLevel.EXCELLENT },
+            okA = a.measurements.count { it.status == "OK" },
+            okB = b.measurements.count { it.status == "OK" },
         )
     }
 }
