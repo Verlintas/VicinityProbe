@@ -2,8 +2,6 @@
 
 专业环境测量系统:通过手机几乎所有传感器与系统模块进行规范化数据采集,生成带数据质量门禁、原始样本存档与频谱分析的测量报告。
 
-Copyright (C) 2026 Verlintas — GPL-3.0-or-later。参见 [LICENSE](LICENSE) 与源码中的版权头。
-
 [English](README.md) · [探测体系文档](docs/PROBES.zh-CN.md)
 
 ## 功能

@@ -2,7 +2,7 @@
 
 VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量目录(ProbeCatalog)中的一个规范条目,定义被测量(Measurand)、单位(SI)、标称采样率、量程与数据质量要求。所有采集数据在本地完成,原始样本以 CSV 存档,报告遵循版本化 schema。
 
-[English](PROBES.md) · Copyright (C) 2026 Verlintas — GPL-3.0-or-later
+[English](PROBES.md)
 
 ---
 

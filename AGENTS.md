@@ -1,7 +1,5 @@
 # AGENTS.md
 
-Copyright (C) 2026 Verlintas — GPL-3.0-or-later
-
 ## Build & verification commands
 
 - Release APK: `./gradlew assembleRelease` (output `app/build/outputs/apk/release/VicinityProbe-<version>.apk`)

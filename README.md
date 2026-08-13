@@ -2,8 +2,6 @@
 
 Professional environmental measurement system: standardized data acquisition from virtually every sensor and system module of your phone, producing measurement reports with data quality gates, raw sample archives, and spectral analysis.
 
-Copyright (C) 2026 Verlintas — GPL-3.0-or-later. See [LICENSE](LICENSE) and the copyright headers in source files.
-
 [中文版](README.zh-CN.md) · [Probe system documentation (EN)](docs/PROBES.md)
 
 ## Features

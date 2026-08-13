@@ -2,7 +2,7 @@
 
 VicinityProbe is a **professional environmental measurement system**. Every probe is a formal entry in the measurement catalog (`ProbeCatalog`) defining measurand, SI unit, nominal sample rate, range, and data quality requirements. All data is acquired locally; raw samples are archived as CSV; reports follow a versioned schema.
 
-[中文版](PROBES.zh-CN.md) · Copyright (C) 2026 Verlintas — GPL-3.0-or-later
+[中文版](PROBES.zh-CN.md)
 
 ## 1. Measurement catalog (ProbeCatalog)
 
