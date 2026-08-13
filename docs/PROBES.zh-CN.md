@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **88 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
+共 **93 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
 
 ## 2. 测量流程
 
@@ -270,6 +270,24 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | 载荷 | 十六进制字符串(可空) |
 | 响应 | HEX + ASCII 回显,截断 512B |
 | 提示 | ⚠️ 主动网络行为,仅限授权目标 |
+
+### 5.22 硬核网络检测(SECURITY / AUDIO)
+
+| 探测项 | 说明 |
+|---|---|
+| ⚠️ `net_dns_hijack` | 自写 DNS 客户端对 8.8.8.8 / 1.1.1.1 / 223.5.5.5 查询 5 个域名 → 跨解析源一致性判定(劫持/分裂 DNS 嫌疑) |
+| ⚠️ `net_arp_spoof` | 会话内 2Hz 采样网关 MAC → 变化检测(网络切换或 ARP 欺骗嫌疑) |
+| ⚠️ `net_mdns` | 组播 PTR 查询 `_services._dns-sd._udp.local` → 服务实例枚举(支持压缩指针) |
+| ⚠️ `net_upnp_detail` | SSDP 发现后逐个拉取设备描述 XML → deviceType / friendlyName / model / 厂商 / 序列号 / 服务列表 |
+| ⚠️ `audio_link_test` | 扬声器播放 1kHz 滴声,麦克风捕获回环 → 扬声器→麦克风延迟、峰值电平、检测次数 |
+
+### 5.23 工具
+
+| 工具 | 说明 |
+|---|---|
+| HTTP 请求 | curl 风格:方法/请求头/请求体/重定向 → 状态行、完整响应头、响应体(8KB 上限)、最终 URL |
+| 端口范围扫描 | 自定义起止端口、40 线程并发、超时 —— 常用服务名对照 |
+| 数据包发送器 | 见 §5.21 |
 
 ## 6. 分析层(AnalysisEngine)
 

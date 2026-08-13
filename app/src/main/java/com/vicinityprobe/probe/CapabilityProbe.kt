@@ -205,6 +205,8 @@ object CapabilityProbe {
         out.add(Capability("noise", nameL("环境声压级|Ambient SPL"), ProbeCatalog.byId("noise")!!,
             if (audioOk) CapabilityStatus.SUPPORTED else CapabilityStatus.PERMISSION_MISSING, listOf(Perms.RECORD_AUDIO)))
         out.add(Capability("audio_state", nameL("音频设备状态|Audio state"), ProbeCatalog.byId("audio_state")!!, CapabilityStatus.SUPPORTED))
+        out.add(Capability("audio_link_test", nameL("音频链路测试|Audio link test"), ProbeCatalog.byId("audio_link_test")!!,
+            if (audioOk) CapabilityStatus.SUPPORTED else CapabilityStatus.PERMISSION_MISSING, listOf(Perms.RECORD_AUDIO)))
         out.add(Capability("battery", nameL("电池电气参数|Battery"), ProbeCatalog.byId("battery")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("device", nameL("设备静态信息|Device info"), ProbeCatalog.byId("device")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("system", nameL("系统资源状态|System resources"), ProbeCatalog.byId("system")!!, CapabilityStatus.SUPPORTED))
@@ -236,6 +238,10 @@ object CapabilityProbe {
         out.add(netCap(ProbeCatalog.byId("net_tls_cipher")!!))
         out.add(netCap(ProbeCatalog.byId("net_ssh_ver")!!))
         out.add(netCap(ProbeCatalog.byId("net_smb")!!))
+        out.add(netCap(ProbeCatalog.byId("net_dns_hijack")!!))
+        out.add(netCap(ProbeCatalog.byId("net_arp_spoof")!!))
+        out.add(netCap(ProbeCatalog.byId("net_mdns")!!))
+        out.add(netCap(ProbeCatalog.byId("net_upnp_detail")!!))
         out.add(Capability("proc_net_conn", nameL("网络连接表|Connection table"), ProbeCatalog.byId("proc_net_conn")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("proc_meminfo", nameL("内核内存明细|Kernel memory"), ProbeCatalog.byId("proc_meminfo")!!, CapabilityStatus.SUPPORTED))
         out.add(Capability("cpu_per_core", nameL("逐核 CPU 使用率|Per-core CPU"), ProbeCatalog.byId("cpu_per_core")!!, CapabilityStatus.SUPPORTED))

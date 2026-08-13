@@ -136,6 +136,9 @@ fun CaptureScreen(nav: NavController) {
                         Text(t(L("总览", "Totals")), style = MaterialTheme.typography.titleSmall)
                         Text("packets: ${stats.totalPackets}  bytes: ${fmtBytes(stats.totalBytes)}", style = MaterialTheme.typography.bodySmall)
                         Text("TLS: ${stats.tlsVersions.entries.joinToString("  ") { "${it.key}×${it.value}" }}  QUIC: ${stats.quicPackets}", style = MaterialTheme.typography.bodySmall)
+                        if (stats.topIps.isNotEmpty()) {
+                            Text("IP TOP: " + stats.topIps.joinToString("  ") { "${it.first} ${fmtBytes(it.second)}" }, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
             }

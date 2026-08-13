@@ -269,6 +269,24 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | Response | HEX + ASCII echo, truncated at 512 B |
 | Notice | ⚠️ active network activity — authorized targets only |
 
+### 5.22 Hardcore network detection (SECURITY / AUDIO)
+
+| Probe | Notes |
+|---|---|
+| ⚠️ `net_dns_hijack` | Self-written DNS client queries 8.8.8.8 / 1.1.1.1 / 223.5.5.5 for 5 domains → cross-resolver consistency verdict (possible hijack / split-DNS) |
+| ⚠️ `net_arp_spoof` | Gateway MAC sampled at 2 Hz across the session → change detection (network switch or ARP spoofing) |
+| ⚠️ `net_mdns` | Multicast PTR query `_services._dns-sd._udp.local` → service instance enumeration (compression-pointer aware) |
+| ⚠️ `net_upnp_detail` | SSDP discovery then fetches each device's description XML → deviceType / friendlyName / model / manufacturer / serial / services |
+| ⚠️ `audio_link_test` | Speaker plays 1 kHz tone bursts, mic captures loopback → speaker→mic latency, peak level, detection count |
+
+### 5.23 Tools
+
+| Tool | Notes |
+|---|---|
+| HTTP request | curl-style: method / headers / body / redirects → status line, full headers, body (8 KB cap), final URL |
+| Port-range scanner | custom start/end ports, 40-thread concurrency, timeout — service names via well-known table |
+| Packet sender | (see §5.21) |
+
 ## 6. Analysis layer (AnalysisEngine)
 
 Measurement-derived summaries only — **no subjective scoring**:

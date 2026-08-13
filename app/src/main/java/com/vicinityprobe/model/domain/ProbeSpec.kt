@@ -308,6 +308,16 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("net_smb", "SMB 协议协商|SMB negotiation", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_dns_hijack", "DNS 劫持检测|DNS hijack detection", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_arp_spoof", "ARP 欺骗检测|ARP spoofing detection", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 2.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_mdns", "mDNS 服务发现|mDNS service discovery", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_upnp_detail", "UPnP 设备深度解析|UPnP device detail", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("audio_link_test", "音频链路测试|Audio link test", Category.AUDIO, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
         }.map { spec ->
             // 合规风险标注:采集数据在部分司法辖区可能受法律法规约束
             val risks = mapOf(
@@ -347,6 +357,11 @@ object ProbeCatalog {
                 "net_tls_cipher" to "密码套件探测属主动安全测试行为|Cipher probing is an active security test",
                 "net_ssh_ver" to "SSH 版本探测属主动安全测试行为|SSH version probing is an active security test",
                 "net_smb" to "SMB 协商探测属主动安全测试行为|SMB negotiation is an active security test",
+                "net_dns_hijack" to "DNS 对比探测可能泄露查询行为|DNS comparison probing may reveal query behavior",
+                "net_arp_spoof" to "ARP 监听属主动网络监测行为|ARP monitoring is active network activity",
+                "net_mdns" to "组播发现会暴露周边服务信息|Multicast discovery exposes nearby services",
+                "net_upnp_detail" to "拉取 UPnP 描述文档触及第三方设备|Fetching UPnP descriptions touches third-party devices",
+                "audio_link_test" to "播放测试音并录音,注意当地录音规定|Playback + recording — mind local recording laws",
             )
             risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec
         }

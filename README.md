@@ -8,7 +8,7 @@ Professional environmental measurement system: standardized data acquisition fro
 
 ## Features
 
-- **Measurement catalog (88 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (93 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
@@ -25,7 +25,9 @@ Professional environmental measurement system: standardized data acquisition fro
   - **Security audit engine**: aggregates all security probes (ports/TLS/certificates/HTTP/WiFi/SMB/MQTT/SSH) into a leveled (INFO→CRITICAL) audit report — rendered in-app and shareable as Markdown
   - **Protocol deep probing**: TLS negotiated cipher suite / protocol / ALPN extraction, SSH version banner, hand-written SMB2 NEGOTIATE (dialect + signing mode)
   - **Packet sender tool**: custom UDP/TCP payloads in hex with response hex/ASCII echo — for protocol testing on authorized targets
-  - **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection
+  - **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection + top-IP traffic ranking
+  - **Hardcore network detection**: **DNS hijack detection** (self-written DNS client, cross-resolver consistency), **ARP spoofing detection** (gateway MAC change monitoring), **mDNS service discovery**, **UPnP device deep-parse** (description XML: types/services/serial), **audio link loopback test** (speaker→mic latency)
+  - **More tools**: HTTP request tool (curl-style: method/headers/body/redirects, full response) + custom port-range scanner (start/end/concurrency/timeout)
   - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
   - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
   - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis

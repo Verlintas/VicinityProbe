@@ -38,7 +38,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Http
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.NetworkCheck
@@ -258,6 +260,18 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.RocketLaunch, contentDescription = null)
                         Text(t(L("数据包发送", "Packet sender")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.HTTPTOOL) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Http, contentDescription = null)
+                        Text(t(L("HTTP 请求", "HTTP tool")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.PORTSCAN) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                        Text(t(L("端口扫描", "Port scan")))
                     }
                 }
             }

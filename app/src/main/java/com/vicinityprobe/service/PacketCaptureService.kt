@@ -188,6 +188,7 @@ data class CaptureStats(
     val otherPackets: Long = 0,
     val tlsVersions: Map<String, Long> = emptyMap(),
     val quicPackets: Long = 0,
+    val topIps: List<Pair<String, Long>> = emptyList(),
     val flows: List<FlowEntry> = emptyList(),
     val topDomains: List<Pair<String, Long>> = emptyList(),
     val httpRequests: List<String> = emptyList(),
@@ -214,12 +215,13 @@ object CaptureController {
     private val httpTime = AtomicLong(0)
     private val quicPkts = AtomicLong(0)
     private val tlsVersions = HashMap<String, Long>()
+    private val ipBytes = HashMap<String, Long>()
 
     fun reset() {
         synchronized(this) {
             flows.clear(); domains.clear(); httpReqs.clear()
             packets.set(0); bytes.set(0); tcpPkts.set(0); udpPkts.set(0); icmpPkts.set(0); otherPkts.set(0)
-            quicPkts.set(0); tlsVersions.clear()
+            quicPkts.set(0); tlsVersions.clear(); ipBytes.clear()
             startedAt = System.currentTimeMillis()
             // 打开 pcap 文件
             try {
@@ -278,6 +280,7 @@ object CaptureController {
             otherPackets = otherPkts.get(),
             tlsVersions = synchronized(tlsVersions) { tlsVersions.toMap() },
             quicPackets = quicPkts.get(),
+            topIps = synchronized(ipBytes) { ipBytes.entries.sortedByDescending { it.value }.take(10).map { it.key to it.value } },
             flows = flows.values.sortedByDescending { it.sentBytes + it.recvBytes }.take(30),
             topDomains = domains.entries.sortedByDescending { it.value }.take(15).map { it.key to it.value.toLong() },
             httpRequests = httpReqs.toList().takeLast(20).reversed(),
@@ -351,6 +354,9 @@ object CaptureController {
         val sent = (existing?.sentBytes ?: 0) + if (isClient) payloadLen else 0
         val recv = (existing?.recvBytes ?: 0) + if (!isClient) payloadLen else 0
         val pkts = (existing?.packets ?: 0) + 1
+        synchronized(ipBytes) {
+            ipBytes[serverIp] = (ipBytes[serverIp] ?: 0) + payloadLen
+        }
         val state = when {
             flags and 0x02 != 0 -> "SYN"
             flags and 0x04 != 0 -> "RST"
@@ -400,6 +406,10 @@ object CaptureController {
             (existing?.recvBytes ?: 0) + if (!isClient) payloadLen else 0,
             (existing?.packets ?: 0) + 1, "UDP", now,
         )
+        synchronized(ipBytes) {
+            val remote = if (isClient) dst else src
+            ipBytes[remote] = (ipBytes[remote] ?: 0) + payloadLen
+        }
     }
 
     private fun parseHttp(payload: ByteArray, clientIp: String) {
