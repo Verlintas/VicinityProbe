@@ -147,7 +147,7 @@ object MarkdownWriter {
         if (q.detail.isNotBlank()) sb.append("| 说明 | ${tb(q.detail)} |\n")
         if (m.spec.typicalRange.isNotEmpty()) sb.append("| 量程 | ${m.spec.typicalRange} |\n")
         m.attributes.entries.sortedBy { it.key }.forEach { (k, v) ->
-            if (k != "detail" && k != "note") sb.append("| $k | ${v.replace("\n", "<br>")} |\n")
+            if (k != "detail" && k != "note") sb.append("| $k | ${tb(v).replace("\n", "<br>")} |\n")
         }
         m.attributes["note"]?.let { sb.append("| 备注 | ${tb(it)} |\n") }
         sb.append("\n")

@@ -31,8 +31,11 @@ class ThermalSampler : Sampler {
                     val t = tempFile.readText().trim().toIntOrNull() ?: return@forEach
                     val type = File(zone, "type").takeIf { it.exists() }?.readText()?.trim() ?: zone.name
                     val deg = if (t > 10000) t / 1000 else t
-                    zones.add("$type=${deg / 10.0}°C")
-                    rec.add(SystemClockCompat.elapsedRealtime() - session.startRealtimeMs, deg / 10.0f)
+                    val celsius = deg / 10.0
+                    // 过滤明显无效读数(占位值/负值/极端值)
+                    if (celsius < -50 || celsius > 125 || celsius == 0.0) return@forEach
+                    zones.add("$type=$celsius°C")
+                    rec.add(SystemClockCompat.elapsedRealtime() - session.startRealtimeMs, celsius.toFloat())
                 } catch (_: Throwable) {}
             }
         } catch (_: Throwable) {}

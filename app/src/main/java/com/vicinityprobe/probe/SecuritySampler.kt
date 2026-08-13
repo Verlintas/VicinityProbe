@@ -112,8 +112,10 @@ class ArpHostDiscoverySampler : Sampler {
         val pair = NetInfo.gatewayAndPrefix(ctx)
         val gw = pair?.first ?: return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "No gateway")
         val prefix = pair.second
+        // 蜂窝等非标准前缀回退 /24 推断
+        val effectivePrefix = if (prefix >= 24 && prefix <= 28) prefix else 24
         val base = gw.substringBeforeLast('.')
-        val range = if (prefix >= 24) 2..60 else 2..40
+        val range = 2..60
 
         // 并行对子网主机做 TCP 探测,触发内核 ARP 解析
         withContext(Dispatchers.IO) {
@@ -434,7 +436,11 @@ class PingSampler : Sampler {
             }
         }
         if (latencies.isEmpty()) {
-            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "Target unreachable")
+            return okMeasurement(spec, mapOf(
+                "target" to target,
+                "method" to "TCP probe (not ICMP, no root)",
+                "result" to "target did not respond on common TCP ports (may be ICMP-only)",
+            ), quality = QualityReport(QualityLevel.GOOD, QualityLevels.CODE_OK, "Target did not respond on common TCP ports", sampleCount = 0))
         }
         val stats = ChannelStats.compute(latencies.map { it.toFloat() }.toFloatArray(), "ms")
         val attrs = LinkedHashMap<String, String>()

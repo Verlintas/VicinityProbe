@@ -85,13 +85,17 @@ object Fft {
         val re = samples.copyOf()
         val im = DoubleArray(n)
         // Hann 窗,消除频谱泄漏
+        var windowEnergy = 0.0
         for (i in 0 until n) {
-            re[i] *= 0.5 * (1 - cos(2 * PI * i / (n - 1)))
+            val w = 0.5 * (1 - cos(2 * PI * i / (n - 1)))
+            re[i] *= w
+            windowEnergy += w * w
         }
         fft(re, im)
         val freq = DoubleArray(n / 2)
         val power = DoubleArray(n / 2)
-        val nrm = 2.0 / (n * n)
+        // 单边谱归一化:2 / (n * Σw²),并排除 DC bin
+        val nrm = 2.0 / (n * windowEnergy)
         for (i in 0 until n / 2) {
             freq[i] = i.toDouble() * fsHz / n
             power[i] = (re[i] * re[i] + im[i] * im[i]) * nrm

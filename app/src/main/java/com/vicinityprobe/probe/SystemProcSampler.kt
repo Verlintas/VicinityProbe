@@ -37,9 +37,12 @@ class ProcNetConnSampler : Sampler {
         val attrs = LinkedHashMap<String, String>()
         val stateCounts = HashMap<String, Int>()
         val rows = ArrayList<String>()
+        var readOk = false
         for (path in listOf("/proc/net/tcp", "/proc/net/tcp6")) {
             try {
-                File(path).readLines().drop(1).forEach { line ->
+                val lines = File(path).readLines()
+                readOk = readOk || lines.size > 1
+                lines.drop(1).forEach { line ->
                     val parts = line.trim().split(Regex("\\s+"))
                     if (parts.size >= 10) {
                         val state = states[parts[3]] ?: parts[3]
@@ -53,6 +56,9 @@ class ProcNetConnSampler : Sampler {
                     }
                 }
             } catch (_: Throwable) {}
+        }
+        if (!readOk) {
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "Android 10+ 多数设备禁止应用读取 /proc/net 连接表|/proc/net connection table is restricted on Android 10+")
         }
         attrs["connection_count"] = stateCounts.values.sum().toString()
         attrs["states"] = stateCounts.entries.sortedByDescending { it.value }
@@ -107,7 +113,11 @@ class PerCoreCpuSampler : Sampler {
     override suspend fun run(ctx: Context, session: SessionContext): Measurement {
         val cores = Runtime.getRuntime().availableProcessors()
         val recs = (0 until cores).map { ChannelRecorder("cpu$it") }
-        var last = coreStats()
+        val first = coreStats()
+        if (first == null) {
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "/proc/stat 在本设备上禁止应用读取|/proc/stat is restricted on this device")
+        }
+        var last = first
         while (kotlin.coroutines.coroutineContext.isActive && SystemClockCompat.elapsedRealtime() < session.deadlineRealtimeMs) {
             val now = coreStats()
             if (last != null && now != null && now.size == cores) {
@@ -171,9 +181,13 @@ class DiskStatsSampler : Sampler {
             delay(1000)
         }
         val attrs = LinkedHashMap<String, String>()
+        val finalSample = sample()
+        if (finalSample == null) {
+            return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "Android 上 /proc/diskstats 通常禁止应用读取|/proc/diskstats is usually restricted for apps")
+        }
         attrs["interval_s"] = "1"
-        attrs["read_ops_total"] = (sample()?.reads ?: 0).toString()
-        attrs["write_ops_total"] = (sample()?.writes ?: 0).toString()
+        attrs["read_ops_total"] = finalSample.reads.toString()
+        attrs["write_ops_total"] = finalSample.writes.toString()
         val stats = LinkedHashMap<String, ChannelStats>()
         if (readRec.size() > 0) {
             stats["reads_per_s"] = ChannelStats.compute(readRec.snapshot().map { it.second }.toFloatArray(), "ops/s")
@@ -189,13 +203,15 @@ class DiskStatsSampler : Sampler {
     private fun sample(): DiskSample? {
         return try {
             var reads = 0L; var writes = 0L; var sectors = 0L
+            var found = false
             File("/proc/diskstats").readLines().forEach { line ->
                 val p = line.trim().split(Regex("\\s+")).mapNotNull { it.toLongOrNull() }
                 if (p.size >= 14) {
+                    found = true
                     reads += p[3]; writes += p[7]; sectors += p[5] + p[9]
                 }
             }
-            DiskSample(reads, writes, sectors)
+            if (!found) null else DiskSample(reads, writes, sectors)
         } catch (_: Throwable) { null }
     }
 }
@@ -359,12 +375,16 @@ class BatteryDrainSampler : Sampler {
         val bm = ctx.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val powerRec = ChannelRecorder("power_mw")
         var samples = 0
+        // 电压只读一次(重复 registerReceiver 在部分系统返回 null)
+        val intent = try { ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) } catch (_: Throwable) { null }
+        val voltage = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
+        if (voltage == null || voltage <= 0) {
+            return failedMeasurement(spec, QualityLevels.CODE_ACQUISITION_ERROR, "读取电池电压失败|Battery voltage unreadable")
+        }
         while (kotlin.coroutines.coroutineContext.isActive && SystemClockCompat.elapsedRealtime() < session.deadlineRealtimeMs) {
             try {
                 val current = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-                val intent = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-                val voltage = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
-                if (current != Int.MIN_VALUE && voltage != null && voltage > 0) {
+                if (current != Int.MIN_VALUE) {
                     val powerMw = current.toDouble() / 1000.0 * voltage / 1000.0 // µA * V / 1000 = mW
                     powerRec.add(session.elapsedMs(), powerMw.toFloat())
                     samples++

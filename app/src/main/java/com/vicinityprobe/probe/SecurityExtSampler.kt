@@ -294,7 +294,8 @@ class SubnetScanSampler : Sampler {
         val pair = NetInfo.gatewayAndPrefix(ctx)
         val gw = pair?.first ?: return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "No gateway")
         val prefix = pair.second
-        if (prefix < 24) return failedMeasurement(spec, QualityLevels.CODE_NO_DATA, "Subnet too large (prefix <24)")
+        // 蜂窝等非标准前缀回退 /24 推断
+        val effectivePrefix = if (prefix >= 24 && prefix <= 28) prefix else 24
         val base = gw.substringBeforeLast('.')
         val alive = java.util.concurrent.ConcurrentHashMap<String, String>()
         withContext(Dispatchers.IO) {

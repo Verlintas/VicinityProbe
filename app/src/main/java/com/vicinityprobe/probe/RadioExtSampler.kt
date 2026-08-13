@@ -460,11 +460,15 @@ class InfraredSampler : Sampler {
         if (ir == null || !ir.hasIrEmitter()) {
             return failedMeasurement(spec, QualityLevels.CODE_NO_HARDWARE, "没有红外发射器|No IR emitter")
         }
-        val ranges = ir.carrierFrequencies
+        val ranges = try { ir.carrierFrequencies } catch (_: Throwable) { emptyArray() }
         val attrs = LinkedHashMap<String, String>()
         attrs["has_ir_emitter"] = "true"
-        attrs["carrier_freq_ranges_hz"] = ranges.joinToString(",") { "${it.minFrequency}~${it.maxFrequency}" }
-        attrs["carrier_freq_max_khz"] = (ranges.maxOfOrNull { it.maxFrequency } ?: 0).toString()
+        if (ranges.isNotEmpty()) {
+            attrs["carrier_freq_ranges_hz"] = ranges.joinToString(",") { "${it.minFrequency}~${it.maxFrequency}" }
+            attrs["carrier_freq_max_khz"] = (ranges.maxOfOrNull { it.maxFrequency } ?: 0).toString()
+        } else {
+            attrs["carrier_freq_ranges_hz"] = "unavailable"
+        }
         return okMeasurement(spec, attrs,
             quality = QualityReport(QualityLevel.EXCELLENT, QualityLevels.CODE_OK, "", sampleCount = 1))
     }
