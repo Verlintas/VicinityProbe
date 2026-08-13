@@ -86,8 +86,8 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 
 | 探测项 | 被测量 | 采样率 | 说明 |
 |---|---|---|---|
-| `sensor.heart_rate` | HEART_RATE (bpm) | 1 Hz | 需 BODY_SENSORS;过滤无效值,报告可靠性 |
-| `sensor.heart_beat` | HEART_RATE (bpm) | 1 Hz | 心跳间期换算 |
+| ⚠️ `sensor.heart_rate` | HEART_RATE (bpm) | 1 Hz | 需 BODY_SENSORS;过滤无效值,报告可靠性 |
+| ⚠️ `sensor.heart_beat` | HEART_RATE (bpm) | 1 Hz | 心跳间期换算 |
 
 ### 5.5 上下文事件(CONTEXT)
 
@@ -101,7 +101,7 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 
 | 探测项 | 说明 |
 |---|---|
-| `noise` | **AudioRecord 直接读取 PCM**(44.1kHz/16bit 单声道):50ms 帧 RMS → 近似声压级;输出 LAeq(等效连续声级)、Lpeak、统计声级 L10/L50/L90;保留 PCM 尾部(8192 采样)做 FFT 频谱分析。**未校准,输出为参考级** |
+| ⚠️ `noise` | **AudioRecord 直接读取 PCM**(44.1kHz/16bit 单声道):50ms 帧 RMS → 近似声压级;输出 LAeq(等效连续声级)、Lpeak、统计声级 L10/L50/L90;保留 PCM 尾部(8192 采样)做 FFT 频谱分析。**未校准,输出为参考级** |
 | `audio_state` | 音量/铃声模式/输出设备(含采样率与声道)/输入设备数 |
 
 声学指标:LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n),能量平均。频谱:FFT-1024~16384-Hann 窗,输出主导频率、频谱平坦度、低频/中频/高频能量占比。
@@ -110,30 +110,30 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 
 | 探测项 | 说明 |
 |---|---|
-| `location` | GPS+网络定位,500ms 采样:经纬度/海拔/精度(水平+垂直)/速度/方位;统计精度与速度分布;首个定位超时 10s |
-| `gnss` | 卫星状态快照:可见数/参与定位数/星座分布(GPS/GLONASS/北斗/伽利略/QZSS/IRNSS/SBAS)/最佳信噪比 |
-| `nmea` | GGA 语句解析:定位质量(1=GPS/2=差分/4=RTK)、使用卫星数、HDOP |
-| `gnss_raw` | **GNSS 原始观测量**(GNSS Logger 级别):历元数、载波相位观测、伪距率有效性、多径标志、CN0 统计、星座构成 |
-| `gnss_hw` | **GNSS 硬件信息**:硬件型号/年代、能力标志(反射 GnssCapabilities)、天线数与载波频率 |
+| ⚠️ `location` | GPS+网络定位,500ms 采样:经纬度/海拔/精度(水平+垂直)/速度/方位;统计精度与速度分布;首个定位超时 10s |
+| ⚠️ `gnss` | 卫星状态快照:可见数/参与定位数/星座分布(GPS/GLONASS/北斗/伽利略/QZSS/IRNSS/SBAS)/最佳信噪比 |
+| ⚠️ `nmea` | GGA 语句解析:定位质量(1=GPS/2=差分/4=RTK)、使用卫星数、HDOP |
+| ⚠️ `gnss_raw` | **GNSS 原始观测量**(GNSS Logger 级别):历元数、载波相位观测、伪距率有效性、多径标志、CN0 统计、星座构成 |
+| ⚠️ `gnss_hw` | **GNSS 硬件信息**:硬件型号/年代、能力标志(反射 GnssCapabilities)、天线数与载波频率 |
 
 ### 5.8 无线电(RADIO)
 
 | 探测项 | 说明 |
 |---|---|
 | `wifi` | 连接信息:SSID/BSSID/RSSI/频段/信道/链路速率/IP |
-| `wifi_dynamic` | 链路动态:会话期间 RSSI 时序(5Hz)+ 上下行链路速率 + 认证状态 + 热点状态(反射)+ 接口 MAC |
-| `wifi_scan` | 环境扫描:AP 数量、**安全分析**(WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/开放)、RSSI 分布统计、明细 |
-| `wifi_rtt` | **IEEE 802.11mc FTM 测距**:对支持 RTT 的 AP 测量距离(±标准差、RSSI) |
-| `wifi_direct` | **WiFi Direct(P2P)对等发现**:对等设备、设备类型、组所有者 |
-| `wifi_aware` | **Wi-Fi Aware(NAN)**:能力特征(服务名长度限制)+ attach/订阅状态 |
-| `cellular` | 制式(5G NR/4G LTE/3G)、运营商、MCC/MNC、漫游、**服务小区与邻区**:LTE(RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**带宽**/**反射时序提前**)、NR(SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**频带**)、GSM/WCDMA/CDMA |
-| `cellular_series` | **信号时序**:等级(0-4)与 dBm 按 2Hz 全会话采样,服务小区跟踪 |
+| ⚠️ `wifi_dynamic` | 链路动态:会话期间 RSSI 时序(5Hz)+ 上下行链路速率 + 认证状态 + 热点状态(反射)+ 接口 MAC |
+| ⚠️ `wifi_scan` | 环境扫描:AP 数量、**安全分析**(WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/开放)、RSSI 分布统计、明细 |
+| ⚠️ `wifi_rtt` | **IEEE 802.11mc FTM 测距**:对支持 RTT 的 AP 测量距离(±标准差、RSSI) |
+| ⚠️ `wifi_direct` | **WiFi Direct(P2P)对等发现**:对等设备、设备类型、组所有者 |
+| ⚠️ `wifi_aware` | **Wi-Fi Aware(NAN)**:能力特征(服务名长度限制)+ attach/订阅状态 |
+| ⚠️ `cellular` | 制式(5G NR/4G LTE/3G)、运营商、MCC/MNC、漫游、**服务小区与邻区**:LTE(RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**带宽**/**反射时序提前**)、NR(SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**频带**)、GSM/WCDMA/CDMA |
+| ⚠️ `cellular_series` | **信号时序**:等级(0-4)与 dBm 按 2Hz 全会话采样,服务小区跟踪 |
 | `connectivity` | 传输类型(含 VPN 检测)、上下行带宽、IPv4/IPv6、DNS、网关、接口枚举 |
 | `network_stats` | **流量与套接字**:开机累计 Rx/Tx 字节与包数(TrafficStats)、逐接口计数(`/proc/net/dev`)、TCP/UDP 套接字数量 |
-| `bluetooth` | BLE 扫描:设备数/RSSI 分布/服务 UUID/厂商数据/**广播标志、发射功率、广播长度** |
-| `bt_classic` | **经典蓝牙发现**(startDiscovery):名称/地址/设备类别 |
-| `bt_paired` | 已配对设备列表 |
-| `nfc` | NFC:启用状态、NDEF 推送、**技术列表(反射)** |
+| ⚠️ `bluetooth` | BLE 扫描:设备数/RSSI 分布/服务 UUID/厂商数据/**广播标志、发射功率、广播长度** |
+| ⚠️ `bt_classic` | **经典蓝牙发现**(startDiscovery):名称/地址/设备类别 |
+| ⚠️ `bt_paired` | 已配对设备列表 |
+| ⚠️ `nfc` | NFC:启用状态、NDEF 推送、**技术列表(反射)** |
 | `fm_radio` | **FM 调谐器**(RadioManager 反射,SDK 36 已移除公开 API):模块 id/厂商/硬件/属性 |
 | `infrared` | **红外发射器**:存在性 + 载波频率范围 |
 
@@ -150,7 +150,7 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 | `system` | CPU 核心数/频率(`/sys` 读取,多数设备不可读则标注)、CPU 使用率(`/proc/stat` 两次采样差分)、负载均值、内存(总量/可用,500ms 周期采样)、存储(内部/外部)、热区温度(thermal_zone,无权限则标注) |
 | `thermal` | **热状态**:逐热区温度(sysfs)+ 系统热状态/降频等级(反射 IThermalService) |
 | `power_state` | **CPU 电源状态**:在线/存在/可能核心列表、逐核调速器 + 频率范围 + 当前频率(sysfs)、schedstat |
-| `kernel` | **内核与安全**:SELinux 强制状态(sysfs)、`/proc/version`、引导加载程序/硬件/修订(反射)、构建标签/类型、序列号(反射,通常受限) |
+| ⚠️ `kernel` | **内核与安全**:SELinux 强制状态(sysfs)、`/proc/version`、引导加载程序/硬件/修订(反射)、构建标签/类型、序列号(反射,通常受限) |
 | `display` | **显示能力**:支持的刷新率模式、当前模式(反射)、HDR 类型、自动亮度/自动旋转/息屏超时 |
 | `storage` | **存储卷**(StorageManager):逐卷 UUID/状态/模拟/可移除/容量 |
 | `device` | 静态信息:型号/系统版本/安全补丁/内核/ABI、屏幕(分辨率/密度/刷新率/HDR)、亮度、摄像头枚举、USB、振动器、时区/语言/运行时长 |
@@ -172,6 +172,30 @@ VicinityProbe 是一套**专业环境测量系统**:每个探测项都是测量�
 - **原始样本**:`reports/<id>/samples/<probeId>/channel_<通道>.csv`(`t_ms,值` 格式,逗号分隔,浮点 6 位精度)
 - **导出**:JSON / Markdown(完整统计表+质量报告)/ **ZIP(报告+全部原始样本 CSV)**
 - **数据质量**:每项携带 EXCELLENT/GOOD/DEGRADED/FAILED 等级与原因码
+
+## 7.5 合规风险标注的探测项
+
+> **合规声明**:请遵守当地法律法规合法使用本软件,使用方式由使用者自行负责。
+
+标注 ⚠️ 的探测项所采集的数据在部分司法辖区受监管或属个人数据(如欧盟 GDPR、各国位置/GNSS 法规):
+
+| 探测项 | 风险 |
+|---|---|
+| ⚠️ `wifi_scan` | 第三方 SSID/BSSID 采集在部分地区受个人数据法规约束 |
+| ⚠️ `wifi_dynamic` | 连接信息含网络标识 |
+| ⚠️ `wifi_rtt` | 对周边接入点的物理测距可能受定位数据法规约束 |
+| ⚠️ `wifi_direct` / `wifi_aware` | 对等/设备发现涉及第三方设备信息 |
+| ⚠️ `bluetooth` / `bt_classic` | 第三方设备 MAC/名称采集可能属个人数据 |
+| ⚠️ `bt_paired` | 已配对设备列表属个人数据 |
+| ⚠️ `cellular` / `cellular_series` | 小区标识采集在部分司法辖区受监管 |
+| ⚠️ `location` / `gnss` / `nmea` / `gnss_raw` | 高精度定位/GNSS 数据在部分司法辖区受监管 |
+| ⚠️ `gnss_hw` | GNSS 硬件信息可推断设备定位能力 |
+| ⚠️ `noise` | 麦克风声学采集,注意当地录音与隐私法规 |
+| ⚠️ `nfc` | 标签读取可能涉及他人设备信息 |
+| ⚠️ `sensor.heart_rate` / `sensor.heart_beat` | 心率属健康数据,受严格个人数据保护规则约束 |
+| ⚠️ `kernel` | 设备序列号属个人标识符 |
+
+这些探测项会在应用内(预检页与报告页)及导出报告中标注;在预检页取消勾选或拒绝权限即可将其排除出测量会话。
 
 ## 8. 已知边界(如实标注)
 

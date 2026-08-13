@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -240,6 +241,13 @@ private fun MeasurementCard(m: Measurement, lang: String, reportId: String) {
                     )
                 }
                 QualityPill(m.quality.level)
+            }
+            if (m.spec.complianceRisk) {
+                Text(
+                    "⚠️ " + trBilingual(m.spec.riskNote, lang),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFE65100),
+                )
             }
             if (m.quality.detail.isNotBlank()) {
                 Text(trBilingual(m.quality.detail, lang), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)

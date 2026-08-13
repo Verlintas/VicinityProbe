@@ -111,6 +111,18 @@ object MarkdownWriter {
             sb.append("\n")
         }
 
+        // 6. 合规声明
+        val risky = report.measurements.filter { it.spec.complianceRisk }
+        sb.append("## 6. 合规提示\n\n")
+        sb.append("请遵守当地法律法规合法使用本软件;使用方式由使用者自行负责。\n\n")
+        if (risky.isNotEmpty()) {
+            sb.append("本报告包含以下受监管风险标注的探测项:\n\n")
+            risky.forEach { m ->
+                sb.append("- **${tb(m.spec.name)}**: ${tb(m.spec.riskNote)}\n")
+            }
+            sb.append("\n")
+        }
+
         sb.append("---\n*由 VicinityProbe 生成 · 报告 schema v${report.schemaVersion} · 未校准测量值均为参考级*\n")
         return sb.toString()
     }
@@ -121,6 +133,9 @@ object MarkdownWriter {
         val name = tb(m.spec.name)
         val q = m.quality
         sb.append("### ${name}\n\n")
+        if (m.spec.complianceRisk) {
+            sb.append("> ⚠️ **合规提示**: ${tb(m.spec.riskNote)}\n\n")
+        }
         sb.append("| 属性 | 值 |\n|---|---|\n")
         sb.append("| 被测量 | ${m.spec.measurand} |\n")
         sb.append("| 单位 | ${m.spec.unit.symbol} |\n")

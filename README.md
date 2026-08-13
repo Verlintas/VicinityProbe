@@ -33,6 +33,8 @@ Professional environmental measurement system: standardized data acquisition fro
 Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity recognition, body sensors, notifications, foreground service. All permissions are declared with their purpose in-app and can be denied individually; denied probes are marked `PERMISSION_DENIED` in the report without aborting the session.
 
 > **Compliance**: Use this software in compliance with all applicable local laws and regulations. You are responsible for how you use it.
+>
+> **Compliance-flagged probes**: the following collect data that is regulated or personal data in some jurisdictions and are marked ⚠️ in-app and in reports: WiFi scan/RTT/Direct/Aware, Bluetooth scan/classic discovery/paired list, cellular & cell identity, location & GNSS (incl. raw measurements), microphone SPL, NFC, heart rate, and device serial. See [docs/PROBES.md](docs/PROBES.md) §7.5 for details.
 
 ## Limitations (honestly reported)
 

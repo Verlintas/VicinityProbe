@@ -73,6 +73,7 @@ object ReportImageRenderer {
             val name = tb(m.spec.name)
             val q = m.quality.level.name
             sb.appendLine("$name [$q]")
+            if (m.spec.complianceRisk) sb.appendLine("  [RISK] ${tb(m.spec.riskNote)}")
             m.attributes.entries.sortedBy { it.key }.forEach { (k, v) ->
                 if (k != "detail") sb.appendLine("  $k: ${v.replace("\n", " ").take(90)}")
             }

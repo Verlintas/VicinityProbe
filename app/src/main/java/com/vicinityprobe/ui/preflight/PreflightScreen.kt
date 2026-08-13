@@ -145,6 +145,13 @@ private fun CapabilityRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (canSelect) MaterialTheme.colorScheme.onSurface else Color.Gray,
             )
+            if (cap.spec.complianceRisk) {
+                Text(
+                    "⚠️ " + (if (lang.startsWith("zh")) cap.spec.riskNote.substringBefore('|') else cap.spec.riskNote.substringAfter('|')),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFE65100),
+                )
+            }
             Text(
                 "${cap.spec.measurand} · ${cap.spec.unit.symbol}" +
                     if (cap.spec.nominalRateHz > 0) " · ${"%.0f".format(cap.spec.nominalRateHz)}Hz" else "",

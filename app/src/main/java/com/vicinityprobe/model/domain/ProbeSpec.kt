@@ -142,6 +142,10 @@ data class ProbeSpec(
     val sampleChannels: List<String> = emptyList(),  // 通道名(如 x/y/z/magnitude)
     val keepRawSamples: Boolean = true,              // 是否存档原始样本
     val notes: String = "",
+    /** 合规风险标记:该探测项的采集数据在部分司法辖区可能受法律法规约束 */
+    val complianceRisk: Boolean = false,
+    /** 合规风险说明(bil 格式) */
+    val riskNote: String = "",
 )
 
 /** 探测目录:全系统唯一注册表 */
@@ -247,6 +251,31 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("storage", "存储卷|Storage volumes", Category.SYSTEM, Measurand.RESOURCE_USAGE, UnitDef.GB, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+        }.map { spec ->
+            // 合规风险标注:采集数据在部分司法辖区可能受法律法规约束
+            val risks = mapOf(
+                "wifi_scan" to "第三方 SSID/BSSID 采集在部分地区受个人数据法规约束|Third-party SSID/BSSID collection may be regulated as personal data",
+                "wifi_dynamic" to "连接信息含网络标识,敏感场景请谨慎使用|Connection info contains network identifiers; use with care",
+                "wifi_rtt" to "对周边接入点的物理测距可能受定位数据法规约束|Physical ranging of nearby APs may fall under location-data regulations",
+                "wifi_direct" to "对等设备发现涉及第三方设备信息|P2P discovery involves third-party device info",
+                "wifi_aware" to "感知会话发现周边设备,可能涉及个人数据|Aware discovery of nearby devices may involve personal data",
+                "bluetooth" to "第三方设备 MAC/名称采集在部分地区属个人数据|Third-party device MAC/name collection may be personal data",
+                "bt_classic" to "第三方设备 MAC/名称采集在部分地区属个人数据|Third-party device MAC/name collection may be personal data",
+                "bt_paired" to "已配对设备列表属个人数据|Paired-device list is personal data",
+                "cellular" to "小区标识采集在部分司法辖区受监管|Cell-tower identity collection is regulated in some jurisdictions",
+                "cellular_series" to "小区标识与信号时序采集受部分辖区监管|Cell identity & signal-series collection is regulated in some jurisdictions",
+                "location" to "高精度定位数据在部分司法辖区受监管|High-precision location data is regulated in some jurisdictions",
+                "gnss" to "GNSS 卫星观测数据受部分辖区监管|GNSS satellite observation data is regulated in some jurisdictions",
+                "nmea" to "NMEA 定位数据受部分辖区监管|NMEA positioning data is regulated in some jurisdictions",
+                "gnss_raw" to "GNSS 原始观测量属高精度定位数据,部分辖区严格监管|GNSS raw measurements are high-precision positioning data, strictly regulated in some jurisdictions",
+                "gnss_hw" to "GNSS 硬件信息可推断设备定位能力|GNSS hardware info may reveal device positioning capability",
+                "noise" to "麦克风声学采集,注意当地录音与隐私法规|Microphone acquisition — mind local recording & privacy laws",
+                "nfc" to "标签读取可能涉及他人设备信息|Tag reading may involve third-party device info",
+                "sensor.heart_rate" to "心率属健康数据,受严格个人数据保护规则约束|Heart rate is health data under strict data-protection rules",
+                "sensor.heart_beat" to "心率数据受严格个人数据保护规则约束|Heart-rate data under strict data-protection rules",
+                "kernel" to "设备序列号属个人标识符|Device serial is a personal identifier",
+            )
+            risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec
         }
     }
 

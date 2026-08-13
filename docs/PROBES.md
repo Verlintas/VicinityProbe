@@ -84,8 +84,8 @@ Reason codes (machine-readable): `OK / NO_HARDWARE / PERMISSION_DENIED / FEATURE
 
 | Probe | Measurand | Rate | Notes |
 |---|---|---|---|
-| `sensor.heart_rate` | HEART_RATE (bpm) | 1 Hz | Requires BODY_SENSORS; invalid values filtered, reliability reported |
-| `sensor.heart_beat` | HEART_RATE (bpm) | 1 Hz | Derived from beat intervals |
+| ⚠️ `sensor.heart_rate` | HEART_RATE (bpm) | 1 Hz | Requires BODY_SENSORS; invalid values filtered, reliability reported |
+| ⚠️ `sensor.heart_beat` | HEART_RATE (bpm) | 1 Hz | Derived from beat intervals |
 
 ### 5.5 Context events (CONTEXT)
 
@@ -99,7 +99,7 @@ Reason codes (machine-readable): `OK / NO_HARDWARE / PERMISSION_DENIED / FEATURE
 
 | Probe | Notes |
 |---|---|
-| `noise` | **AudioRecord direct PCM capture** (44.1 kHz / 16-bit mono): 50 ms frame RMS → approximate SPL; outputs LAeq (equivalent continuous level), Lpeak, statistical levels L10/L50/L90; retains the PCM tail (8192 samples) for FFT spectral analysis. **Uncalibrated — reference level only** |
+| ⚠️ `noise` | **AudioRecord direct PCM capture** (44.1 kHz / 16-bit mono): 50 ms frame RMS → approximate SPL; outputs LAeq (equivalent continuous level), Lpeak, statistical levels L10/L50/L90; retains the PCM tail (8192 samples) for FFT spectral analysis. **Uncalibrated — reference level only** |
 | `audio_state` | Volumes / ringer mode / output devices (with sample rate & channels) / input device count |
 
 Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spectrum: FFT-1024~16384 with Hann window; outputs dominant frequency, spectral flatness, and low/mid/high band energy ratios.
@@ -108,30 +108,30 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 
 | Probe | Notes |
 |---|---|
-| `location` | GPS + network location at 500 ms intervals: lat/lon/altitude/accuracy (horizontal+vertical)/speed/bearing; accuracy & speed distributions; 10 s first-fix timeout |
-| `gnss` | Satellite status snapshots: visible/used-in-fix counts, constellation distribution (GPS/GLONASS/BeiDou/Galileo/QZSS/IRNSS/SBAS), best SNR |
-| `nmea` | GGA sentence parsing: fix quality (1=GPS/2=DGPS/4=RTK), satellites used, HDOP |
-| `gnss_raw` | **GNSS raw measurements** (Android GNSS Logger grade): epochs, carrier-phase observations, pseudorange-rate validity, multipath flags, CN0 statistics, constellation mix |
-| `gnss_hw` | **GNSS hardware info**: hardware model/year, capabilities flags (reflection over GnssCapabilities), antenna count & carrier frequencies |
+| ⚠️ `location` | GPS + network location at 500 ms intervals: lat/lon/altitude/accuracy (horizontal+vertical)/speed/bearing; accuracy & speed distributions; 10 s first-fix timeout |
+| ⚠️ `gnss` | Satellite status snapshots: visible/used-in-fix counts, constellation distribution (GPS/GLONASS/BeiDou/Galileo/QZSS/IRNSS/SBAS), best SNR |
+| ⚠️ `nmea` | GGA sentence parsing: fix quality (1=GPS/2=DGPS/4=RTK), satellites used, HDOP |
+| ⚠️ `gnss_raw` | **GNSS raw measurements** (Android GNSS Logger grade): epochs, carrier-phase observations, pseudorange-rate validity, multipath flags, CN0 statistics, constellation mix |
+| ⚠️ `gnss_hw` | **GNSS hardware info**: hardware model/year, capabilities flags (reflection over GnssCapabilities), antenna count & carrier frequencies |
 
 ### 5.8 Radio (RADIO)
 
 | Probe | Notes |
 |---|---|
 | `wifi` | Connection info: SSID/BSSID/RSSI/band/channel/link speed/IP |
-| `wifi_dynamic` | Link dynamics over the session: RSSI time series (5 Hz) + Rx/Tx link speeds + supplicant state + hotspot state (reflection) + interface MAC |
-| `wifi_scan` | Environment scan: AP count, **security analysis** (WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/OPEN), RSSI distribution, details |
-| `wifi_rtt` | **IEEE 802.11mc FTM ranging**: distance to RTT-capable APs (distance ± stddev, RSSI) |
-| `wifi_direct` | **WiFi Direct (P2P) peer discovery**: peers, device type, group owners |
-| `wifi_aware` | **Wi-Fi Aware (NAN)**: capability characteristics (service name length limits) + attach/subscribe status |
-| `cellular` | Generation (5G NR/4G LTE/3G), operator, MCC/MNC, roaming, **serving & neighbor cells**: LTE (RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**bandwidth**/**timing advance via reflection**), NR (SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**bands**), GSM/WCDMA/CDMA |
-| `cellular_series` | **Signal time series**: level (0–4) and dBm sampled at 2 Hz over the session, serving cell tracking |
+| ⚠️ `wifi_dynamic` | Link dynamics over the session: RSSI time series (5 Hz) + Rx/Tx link speeds + supplicant state + hotspot state (reflection) + interface MAC |
+| ⚠️ `wifi_scan` | Environment scan: AP count, **security analysis** (WPA3(SAE)/WPA3-WPA2/WPA2/WPA/WEP/OPEN), RSSI distribution, details |
+| ⚠️ `wifi_rtt` | **IEEE 802.11mc FTM ranging**: distance to RTT-capable APs (distance ± stddev, RSSI) |
+| ⚠️ `wifi_direct` | **WiFi Direct (P2P) peer discovery**: peers, device type, group owners |
+| ⚠️ `wifi_aware` | **Wi-Fi Aware (NAN)**: capability characteristics (service name length limits) + attach/subscribe status |
+| ⚠️ `cellular` | Generation (5G NR/4G LTE/3G), operator, MCC/MNC, roaming, **serving & neighbor cells**: LTE (RSRP/RSRQ/SNR/CI/TAC/PCI/EARFCN/**bandwidth**/**timing advance via reflection**), NR (SS-RSRP/SS-RSRQ/SS-SINR/NCI/NRARFCN/**bands**), GSM/WCDMA/CDMA |
+| ⚠️ `cellular_series` | **Signal time series**: level (0–4) and dBm sampled at 2 Hz over the session, serving cell tracking |
 | `connectivity` | Transports (incl. VPN detection), uplink/downlink bandwidth, IPv4/IPv6, DNS, gateway, interface enumeration |
 | `network_stats` | **Traffic & sockets**: total Rx/Tx bytes & packets since boot (TrafficStats), per-interface counters (`/proc/net/dev`), TCP/UDP socket counts |
-| `bluetooth` | BLE scan: device count / RSSI distribution / service UUIDs / manufacturer data / **adv flags, Tx power, adv length** |
-| `bt_classic` | **Classic Bluetooth discovery** (startDiscovery): device name/address/device class |
-| `bt_paired` | Paired device list |
-| `nfc` | NFC adapter: enabled state, NDEF push, **technology list (reflection)** |
+| ⚠️ `bluetooth` | BLE scan: device count / RSSI distribution / service UUIDs / manufacturer data / **adv flags, Tx power, adv length** |
+| ⚠️ `bt_classic` | **Classic Bluetooth discovery** (startDiscovery): device name/address/device class |
+| ⚠️ `bt_paired` | Paired device list |
+| ⚠️ `nfc` | NFC adapter: enabled state, NDEF push, **technology list (reflection)** |
 | `fm_radio` | **FM radio tuners** (RadioManager via reflection — API removed in SDK 36): module id/vendor/hw/properties |
 | `infrared` | **IR emitter**: presence + carrier frequency ranges |
 
@@ -148,7 +148,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | `system` | CPU cores/frequencies (sysfs read; unreadable on most devices — reported), CPU usage (`/proc/stat` two-sample delta), load average, memory (total/available, 500 ms polling), storage (internal/external), thermal zones (thermal_zone sysfs; no permission — reported) |
 | `thermal` | **Thermal status**: per-zone temperatures (sysfs) + system thermal status / throttling severity (IThermalService via reflection) |
 | `power_state` | **CPU power state**: online/present/possible core lists, per-core governor + frequency range + current frequency (sysfs), schedstat |
-| `kernel` | **Kernel & security**: SELinux enforcing state (sysfs), `/proc/version`, bootloader/hardware/revision (reflection), build tags/type, serial (reflection, usually restricted) |
+| ⚠️ `kernel` | **Kernel & security**: SELinux enforcing state (sysfs), `/proc/version`, bootloader/hardware/revision (reflection), build tags/type, serial (reflection, usually restricted) |
 | `display` | **Display capabilities**: supported refresh modes, current mode (reflection), HDR types, auto-brightness/auto-rotate/screen-off timeout |
 | `storage` | **Storage volumes** (StorageManager): per-volume UUID/state/emulated/removable/capacity |
 | `device` | Static info: model/OS version/security patch/kernel/ABIs, display (resolution/density/refresh rate/HDR), brightness, camera enumeration, USB, vibrator, timezone/locale/uptime |
@@ -170,6 +170,30 @@ Measurement-derived summaries only — **no subjective scoring**:
 - **Raw samples**: `reports/<id>/samples/<probeId>/channel_<ch>.csv` (`t_ms,value`, comma-separated, 6-digit float precision)
 - **Export**: JSON / Markdown (full statistics tables + quality report) / **ZIP (report + all raw sample CSVs)**
 - **Data quality**: every probe carries EXCELLENT/GOOD/DEGRADED/FAILED level with reason code
+
+## 7.5 Compliance-marked probes
+
+> **Compliance**: Use this software in compliance with all applicable local laws and regulations; you are responsible for how you use it.
+
+Probes marked ⚠️ collect data that is regulated or considered personal data in some jurisdictions (e.g., EU GDPR, national location/GNSS regulations):
+
+| Probe | Risk |
+|---|---|
+| ⚠️ `wifi_scan` | Third-party SSID/BSSID collection may be regulated as personal data |
+| ⚠️ `wifi_dynamic` | Connection info contains network identifiers |
+| ⚠️ `wifi_rtt` | Physical ranging of nearby APs may fall under location-data regulations |
+| ⚠️ `wifi_direct` / `wifi_aware` | Peer/device discovery involves third-party device info |
+| ⚠️ `bluetooth` / `bt_classic` | Third-party device MAC/name collection may be personal data |
+| ⚠️ `bt_paired` | Paired-device list is personal data |
+| ⚠️ `cellular` / `cellular_series` | Cell-tower identity collection is regulated in some jurisdictions |
+| ⚠️ `location` / `gnss` / `nmea` / `gnss_raw` | High-precision positioning/GNSS data is regulated in some jurisdictions |
+| ⚠️ `gnss_hw` | GNSS hardware info may reveal device positioning capability |
+| ⚠️ `noise` | Microphone acquisition — mind local recording & privacy laws |
+| ⚠️ `nfc` | Tag reading may involve third-party device info |
+| ⚠️ `sensor.heart_rate` / `sensor.heart_beat` | Heart rate is health data under strict data-protection rules |
+| ⚠️ `kernel` | Device serial is a personal identifier |
+
+These probes are flagged in-app (preflight & report) and in exported reports. Denying a permission or deselecting a probe in preflight excludes it from the session.
 
 ## 8. Known limitations (honestly reported)
 
