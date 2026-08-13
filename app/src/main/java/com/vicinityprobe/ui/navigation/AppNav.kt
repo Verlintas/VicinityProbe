@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vicinityprobe.ui.capture.CaptureScreen
 import com.vicinityprobe.ui.compare.CompareScreen
 import com.vicinityprobe.ui.history.HistoryScreen
 import com.vicinityprobe.ui.home.HomeScreen
@@ -43,6 +44,7 @@ object Routes {
     const val HISTORY = "history"
     const val COMPARE = "compare"
     const val TREND = "trend"
+    const val CAPTURE = "capture"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -77,5 +79,6 @@ fun AppNav() {
         composable(Routes.HISTORY) { HistoryScreen(nav) }
         composable(Routes.COMPARE) { CompareScreen(nav) }
         composable(Routes.TREND) { TrendScreen(nav) }
+        composable(Routes.CAPTURE) { CaptureScreen(nav) }
     }
 }

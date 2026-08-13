@@ -31,6 +31,7 @@ import com.vicinityprobe.ui.theme.VicinityProbeTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.vicinityprobe.service.AppContextHolder.context = applicationContext
         enableEdgeToEdge()
         setContent {
             VicinityProbeTheme {

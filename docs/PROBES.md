@@ -199,6 +199,21 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | `battery_drain` | **Battery drain rate**: live current×voltage power time series (mW) → mean/min/max power, estimated autonomy from charge counter |
 | `wifi_channel` | **WiFi channel analysis**: AP distribution per channel, 2.4/5/6 GHz band split, per-channel avg RSSI + congestion |
 
+## 5.15 Root-free packet capture (VPNService)
+
+| Item | Description |
+|---|---|
+| Engine | System VPN tunnel (`VpnService`) takes over all traffic; IP packets parsed in-process — **no root required** |
+| Protocols | IPv4/IPv6 → TCP / UDP / ICMP; per-protocol packet & byte counters |
+| Flow table | TCP & UDP 5-tuple flows (client/server, sent/recv bytes, packet count, state via SYN/FIN/RST), 45 s idle expiry |
+| DNS | Client→53 query names decoded (label parsing with compression-pointer support) |
+| TLS SNI | Server-name extracted from ClientHello; counts toward domain ranking |
+| HTTP | Plaintext requests on 80/8080 (method, path, Host) |
+| Export | Standard **pcap** file (LINKTYPE_RAW), shareable → open directly in Wireshark |
+| UI | Live stats: protocol cards, top flows, top domains, HTTP request log; start/stop with system VPN authorization dialog |
+
+> ⚠️ **Compliance**: capturing collects plaintext traffic and DNS — high-risk probe; only capture networks you are authorized to inspect. In-app notice shown on the capture screen.
+
 ## 6. Analysis layer (AnalysisEngine)
 
 Measurement-derived summaries only — **no subjective scoring**:

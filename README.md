@@ -18,6 +18,7 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
+  - **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, TLS SNI extraction, plaintext HTTP request parsing — exportable as **standard pcap** openable in Wireshark
   - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
   - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
   - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis

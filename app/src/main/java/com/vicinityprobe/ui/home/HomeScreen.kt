@@ -37,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -221,6 +222,12 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.CompareArrows, contentDescription = null)
                         Text(t(L("报告对比", "Compare")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.CAPTURE) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.NetworkCheck, contentDescription = null)
+                        Text(t(L("抓包分析", "Capture")))
                     }
                 }
             }
