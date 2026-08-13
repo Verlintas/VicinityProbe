@@ -37,6 +37,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Button
@@ -228,6 +231,26 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.NetworkCheck, contentDescription = null)
                         Text(t(L("抓包分析", "Capture")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.REALTIME) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Sensors, contentDescription = null)
+                        Text(t(L("实时监测", "Monitor")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.CALIB) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.SettingsInputComponent, contentDescription = null)
+                        Text(t(L("传感器标定", "Calibrate")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.WEB) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Language, contentDescription = null)
+                        Text(t(L("Web 控制台", "Web console")))
                     }
                 }
             }

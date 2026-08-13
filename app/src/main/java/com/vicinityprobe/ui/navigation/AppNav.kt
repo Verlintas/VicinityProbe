@@ -27,14 +27,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vicinityprobe.ui.calib.CalibrationScreen
 import com.vicinityprobe.ui.capture.CaptureScreen
 import com.vicinityprobe.ui.compare.CompareScreen
 import com.vicinityprobe.ui.history.HistoryScreen
 import com.vicinityprobe.ui.home.HomeScreen
 import com.vicinityprobe.ui.preflight.PreflightScreen
+import com.vicinityprobe.ui.realtime.RealTimeScreen
 import com.vicinityprobe.ui.report.ReportScreen
 import com.vicinityprobe.ui.scanning.ScanningScreen
 import com.vicinityprobe.ui.trend.TrendScreen
+import com.vicinityprobe.ui.web.WebConsoleScreen
 
 object Routes {
     const val HOME = "home"
@@ -45,6 +48,9 @@ object Routes {
     const val COMPARE = "compare"
     const val TREND = "trend"
     const val CAPTURE = "capture"
+    const val WEB = "web"
+    const val REALTIME = "realtime"
+    const val CALIB = "calib"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -80,5 +86,8 @@ fun AppNav() {
         composable(Routes.COMPARE) { CompareScreen(nav) }
         composable(Routes.TREND) { TrendScreen(nav) }
         composable(Routes.CAPTURE) { CaptureScreen(nav) }
+        composable(Routes.WEB) { WebConsoleScreen(nav) }
+        composable(Routes.REALTIME) { RealTimeScreen(nav) }
+        composable(Routes.CALIB) { CalibrationScreen(nav) }
     }
 }

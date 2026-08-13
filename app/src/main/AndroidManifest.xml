@@ -78,6 +78,11 @@
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".service.WebServerService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

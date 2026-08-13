@@ -214,6 +214,34 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 
 > ⚠️ **Compliance**: capturing collects plaintext traffic and DNS — high-risk probe; only capture networks you are authorized to inspect. In-app notice shown on the capture screen.
 
+## 5.16 LAN web console (built-in HTTP server)
+
+| Item | Description |
+|---|---|
+| Transport | Minimal HTTP server (ServerSocket, no dependencies), port 8080, LAN only |
+| Dashboard | `/` — dark-themed console: report list with quality badges, live capture stats, probe capabilities |
+| APIs | `/api/reports`, `/api/report/{id}`, `/api/capture`, `/api/capabilities` (JSON) |
+| Downloads | `/download/report/{id}`, `/download/samples/{id}/…` (CSV), `/download/pcap` |
+| Remote scan | `POST /api/scan` with `ids` + `duration` → runs a session in the foreground service, report saved to history |
+| Notice | ⚠️ LAN only — never expose to the public internet |
+
+## 5.17 Real-time monitor
+
+| Item | Description |
+|---|---|
+| Oscilloscope | Live waveform (FASTEST sampling) for accelerometer / gyroscope / magnetometer / light / temperature / pressure / SPL; 800-point ring buffer, 3 channels (x/y/z) |
+| Spectrum waterfall | AudioRecord 4096-pt FFT → 64 log-magnitude bins (0-8 kHz), 40-row waterfall |
+| Alerts | Thresholds (noise dB(A) / temp °C / light lx) checked every 120 ms → high-priority notification (once per 5 s per metric), configurable and toggleable |
+
+## 5.18 Sensor calibration wizard
+
+| Step | Procedure | Output |
+|---|---|---|
+| 1. Magnetometer | Figure-8 motion covering all orientations (~20 s) | Hard-iron offset x/y/z (µT), magnitude range |
+| 2. Accelerometer | Rest flat on a table (~8 s) | Measured gravity vs 9.80665 m/s², bias |
+| 3. Gyroscope | Keep perfectly still (~8 s) | Per-axis bias (rad/s), combined stddev |
+| Final | Shareable text report | All parameters above |
+
 ## 6. Analysis layer (AnalysisEngine)
 
 Measurement-derived summaries only — **no subjective scoring**:

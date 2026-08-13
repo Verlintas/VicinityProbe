@@ -19,6 +19,9 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
   - **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, TLS SNI extraction, plaintext HTTP request parsing — exportable as **standard pcap** openable in Wireshark
+  - **LAN web console**: built-in HTTP server — desktop-browser dashboard with all reports, raw CSV & pcap downloads, live capture stats, and **remote scan triggering** (LAN only)
+  - **Real-time monitor**: live oscilloscope for sensors (accel/gyro/mag/light/temp/pressure/noise), audio **spectrum waterfall** (FFT), threshold alerts via notification (noise/temp/light)
+  - **Sensor calibration wizard**: guided magnetometer figure-8 (hard-iron offset), accelerometer gravity reference, gyroscope bias — outputs a shareable calibration report
   - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
   - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
   - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis

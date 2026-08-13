@@ -32,6 +32,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.vicinityprobe.service.AppContextHolder.context = applicationContext
+        com.vicinityprobe.ui.realtime.SensorManagerHolder.manager =
+            getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
         enableEdgeToEdge()
         setContent {
             VicinityProbeTheme {
