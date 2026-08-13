@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,6 +116,11 @@ fun ReportScreen(nav: NavController, reportId: String) {
             PlanHeader(r, lang)
             QualitySummary(r)
             r.analysis?.let { AnalysisSection(it, lang) }
+            SecurityAuditSection(r, lang) { md ->
+                val f = java.io.File(context.cacheDir, "security_audit.md")
+                f.writeText(md)
+                com.vicinityprobe.report.ReportExporter.shareFile(context, f, "text/markdown")
+            }
             HorizontalDivider()
             r.measurements.forEach { m -> MeasurementCard(m, lang, reportId) }
 
@@ -299,3 +305,42 @@ private fun SpectrumBlock(s: SpectrumResult, lang: String) {
 }
 
 private fun tb(s: String, lang: String): String = trBilingual(s, lang)
+
+@Composable
+private fun SecurityAuditSection(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
+    val findings = remember(r.id) { com.vicinityprobe.analysis.SecurityAudit.audit(r) }
+    if (findings.isEmpty()) return
+    var expanded by remember(r.id) { mutableStateOf(false) }
+    val counts = findings.groupBy { it.level }
+    Card(colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(tb("安全审计|Security audit", lang), style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("HIGH", "MEDIUM", "LOW", "INFO").forEach { l ->
+                        val c = counts[l]?.size ?: 0
+                        if (c > 0) {
+                            val color = when (l) {
+                                "HIGH" -> Color(0xFFC62828); "MEDIUM" -> Color(0xFFF9A825); "LOW" -> Color(0xFF1565C0); else -> Color(0xFF546E7A)
+                            }
+                            Text("$l $c", style = MaterialTheme.typography.labelSmall, color = color)
+                        }
+                    }
+                }
+            }
+            if (expanded) {
+                findings.forEach { f ->
+                    Column(Modifier.fillMaxWidth()) {
+                        Text("${f.level} · ${f.category} · ${f.probe}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(f.detail.take(160), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                TextButton(onClick = { onShare(com.vicinityprobe.analysis.SecurityAudit.markdown(r, findings, lang)) }) {
+                    Text(tb("分享审计报告|Share audit report", lang))
+                }
+            } else {
+                TextButton(onClick = { expanded = true }) { Text(tb("查看详情|Show details", lang)) }
+            }
+        }
+    }
+}

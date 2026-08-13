@@ -210,6 +210,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | TLS SNI | Server-name extracted from ClientHello; counts toward domain ranking |
 | HTTP | Plaintext requests on 80/8080 (method, path, Host) |
 | Export | Standard **pcap** file (LINKTYPE_RAW), shareable → open directly in Wireshark |
+| Enrichment | TLS version distribution extracted from ClientHello; QUIC (UDP/443) detection |
 | UI | Live stats: protocol cards, top flows, top domains, HTTP request log; start/stop with system VPN authorization dialog |
 
 > ⚠️ **Compliance**: capturing collects plaintext traffic and DNS — high-risk probe; only capture networks you are authorized to inspect. In-app notice shown on the capture screen.
@@ -241,6 +242,32 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | 2. Accelerometer | Rest flat on a table (~8 s) | Measured gravity vs 9.80665 m/s², bias |
 | 3. Gyroscope | Keep perfectly still (~8 s) | Per-axis bias (rad/s), combined stddev |
 | Final | Shareable text report | All parameters above |
+
+### 5.19 Protocol deep probing (SECURITY)
+
+| Probe | Notes |
+|---|---|
+| ⚠️ `net_tls_cipher` | TLS handshake on 443/8443/8888 → **negotiated cipher suite**, protocol version, ALPN (h2/http1.1) |
+| ⚠️ `net_ssh_ver` | SSH banner on 22 → vendor + version (e.g. OpenSSH_9.2p1) |
+| ⚠️ `net_smb` | Hand-written **SMB2 NEGOTIATE** (NetBIOS framing) → negotiated dialect (2.0.2–3.1.1), signing mode (none/enabled/required) |
+
+### 5.20 Security audit engine
+
+| Item | Description |
+|---|---|
+| Input | Aggregates measurements from all security probes in a report |
+| Findings | Leveled INFO → CRITICAL: open risky ports (db/RDP/SMB/Docker…), TRACE/PUT allowed, missing security headers, TLSv1.0/1.1, expired/self-signed/weak-signature certificates, anonymous MQTT, SMB no-signing, open WiFi networks |
+| Output | In-app audit card on the report page (counts + details) + shareable Markdown audit report |
+| Principle | Objective facts only — no subjective scoring |
+
+### 5.21 Packet sender (tool)
+
+| Item | Description |
+|---|---|
+| Target | Host + port, TCP or UDP |
+| Payload | Hex string (optional) |
+| Response | HEX + ASCII echo, truncated at 512 B |
+| Notice | ⚠️ active network activity — authorized targets only |
 
 ## 6. Analysis layer (AnalysisEngine)
 

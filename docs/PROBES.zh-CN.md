@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **85 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
+共 **88 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
 
 ## 2. 测量流程
 
@@ -212,6 +212,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | TLS SNI | 从 ClientHello 提取服务器名,计入域名排行 |
 | HTTP | 80/8080 明文请求(方法、路径、Host) |
 | 导出 | 标准 **pcap** 文件(LINKTYPE_RAW),可分享 → 直接用 Wireshark 打开 |
+| 增强 | 从 ClientHello 提取 TLS 版本分布;QUIC(UDP/443)检测 |
 | 界面 | 实时统计:协议卡片、TOP 连接流、TOP 域名、HTTP 请求日志;系统 VPN 授权弹窗后开始/停止 |
 
 > ⚠️ **合规**:抓包会采集明文流量与 DNS,属高风险项;只允许抓取你有权检查的网络。抓包页有应用内提示。
@@ -243,6 +244,32 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | 2. 加速度计 | 平放静置桌面(约 8 秒) | 实测重力 vs 9.80665 m/s²、偏差 |
 | 3. 陀螺仪 | 保持完全静止(约 8 秒) | 逐轴零偏(rad/s)、综合标准差 |
 | 完成 | 可分享的文本报告 | 以上全部参数 |
+
+### 5.19 协议深探(SECURITY)
+
+| 探测项 | 说明 |
+|---|---|
+| ⚠️ `net_tls_cipher` | 对 443/8443/8888 做 TLS 握手 → **协商密码套件**、协议版本、ALPN(h2/http1.1) |
+| ⚠️ `net_ssh_ver` | 22 端口读取 SSH banner → 厂商 + 版本(如 OpenSSH_9.2p1) |
+| ⚠️ `net_smb` | 手写 **SMB2 NEGOTIATE**(NetBIOS 帧)→ 协商 dialect(2.0.2~3.1.1)、签名模式(无/启用/强制) |
+
+### 5.20 安全审计引擎
+
+| 项目 | 说明 |
+|---|---|
+| 输入 | 聚合报告中全部安全探测结果 |
+| 条目 | 分级 INFO → CRITICAL:危险开放端口(数据库/RDP/SMB/Docker…)、允许 TRACE/PUT、缺失安全头、TLSv1.0/1.1、过期/自签名/弱签名证书、MQTT 匿名接入、SMB 无签名、开放 WiFi 网络 |
+| 输出 | 报告页安全审计卡片(计数+详情)+ 可分享的 Markdown 审计报告 |
+| 原则 | 只输出客观事实,不出主观评分 |
+
+### 5.21 数据包发送器(工具)
+
+| 项目 | 说明 |
+|---|---|
+| 目标 | 主机 + 端口,TCP 或 UDP |
+| 载荷 | 十六进制字符串(可空) |
+| 响应 | HEX + ASCII 回显,截断 512B |
+| 提示 | ⚠️ 主动网络行为,仅限授权目标 |
 
 ## 6. 分析层(AnalysisEngine)
 

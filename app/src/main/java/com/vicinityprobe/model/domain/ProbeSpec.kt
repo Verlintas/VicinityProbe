@@ -302,6 +302,12 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("net_tcp_concurrency", "并发连接测试|TCP concurrency test", Category.SECURITY, Measurand.COUNT, UnitDef.CHANNELS, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_tls_cipher", "TLS 密码套件探测|TLS cipher probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_ssh_ver", "SSH 版本探测|SSH version probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_smb", "SMB 协议协商|SMB negotiation", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList()))
         }.map { spec ->
             // 合规风险标注:采集数据在部分司法辖区可能受法律法规约束
             val risks = mapOf(
@@ -338,6 +344,9 @@ object ProbeCatalog {
                 "net_mqtt" to "MQTT 探测可能触及第三方服务|MQTT probing may touch third-party services",
                 "net_http_paths" to "路径枚举属主动安全测试行为|Path enumeration is an active security test",
                 "net_tcp_concurrency" to "并发连接测试属主动网络行为|Concurrency testing is active network behavior",
+                "net_tls_cipher" to "密码套件探测属主动安全测试行为|Cipher probing is an active security test",
+                "net_ssh_ver" to "SSH 版本探测属主动安全测试行为|SSH version probing is an active security test",
+                "net_smb" to "SMB 协商探测属主动安全测试行为|SMB negotiation is an active security test",
             )
             risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec
         }

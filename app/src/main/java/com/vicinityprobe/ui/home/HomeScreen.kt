@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.NetworkCheck
@@ -251,6 +252,12 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Language, contentDescription = null)
                         Text(t(L("Web 控制台", "Web console")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.PACKET) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.RocketLaunch, contentDescription = null)
+                        Text(t(L("数据包发送", "Packet sender")))
                     }
                 }
             }

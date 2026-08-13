@@ -8,7 +8,7 @@ Professional environmental measurement system: standardized data acquisition fro
 
 ## Features
 
-- **Measurement catalog (85 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (88 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
@@ -22,6 +22,10 @@ Professional environmental measurement system: standardized data acquisition fro
   - **LAN web console**: built-in HTTP server — desktop-browser dashboard with all reports, raw CSV & pcap downloads, live capture stats, and **remote scan triggering** (LAN only)
   - **Real-time monitor**: live oscilloscope for sensors (accel/gyro/mag/light/temp/pressure/noise), audio **spectrum waterfall** (FFT), threshold alerts via notification (noise/temp/light)
   - **Sensor calibration wizard**: guided magnetometer figure-8 (hard-iron offset), accelerometer gravity reference, gyroscope bias — outputs a shareable calibration report
+  - **Security audit engine**: aggregates all security probes (ports/TLS/certificates/HTTP/WiFi/SMB/MQTT/SSH) into a leveled (INFO→CRITICAL) audit report — rendered in-app and shareable as Markdown
+  - **Protocol deep probing**: TLS negotiated cipher suite / protocol / ALPN extraction, SSH version banner, hand-written SMB2 NEGOTIATE (dialect + signing mode)
+  - **Packet sender tool**: custom UDP/TCP payloads in hex with response hex/ASCII echo — for protocol testing on authorized targets
+  - **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection
   - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
   - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
   - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis

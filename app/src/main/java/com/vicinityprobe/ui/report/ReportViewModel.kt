@@ -44,6 +44,11 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
 
     fun samplesDir(id: String): File? = history.samplesDir(id)
 
+    fun audit(findings: List<com.vicinityprobe.analysis.AuditFinding>, lang: String): String {
+        val report = _report.value ?: return ""
+        return com.vicinityprobe.analysis.SecurityAudit.markdown(report, findings, lang)
+    }
+
     fun exportJson() = _report.value?.let { ReportExporter.writeJson(getApplication(), it) }
     fun exportMd(lang: String) = _report.value?.let { ReportExporter.writeMarkdown(getApplication(), it, lang) }
     fun exportZip() = _report.value?.let { ReportExporter.shareZip(getApplication(), it) }

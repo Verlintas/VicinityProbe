@@ -186,6 +186,8 @@ data class CaptureStats(
     val udpPackets: Long = 0,
     val icmpPackets: Long = 0,
     val otherPackets: Long = 0,
+    val tlsVersions: Map<String, Long> = emptyMap(),
+    val quicPackets: Long = 0,
     val flows: List<FlowEntry> = emptyList(),
     val topDomains: List<Pair<String, Long>> = emptyList(),
     val httpRequests: List<String> = emptyList(),
@@ -210,11 +212,14 @@ object CaptureController {
     private val icmpPkts = AtomicLong(0)
     private val otherPkts = AtomicLong(0)
     private val httpTime = AtomicLong(0)
+    private val quicPkts = AtomicLong(0)
+    private val tlsVersions = HashMap<String, Long>()
 
     fun reset() {
         synchronized(this) {
             flows.clear(); domains.clear(); httpReqs.clear()
             packets.set(0); bytes.set(0); tcpPkts.set(0); udpPkts.set(0); icmpPkts.set(0); otherPkts.set(0)
+            quicPkts.set(0); tlsVersions.clear()
             startedAt = System.currentTimeMillis()
             // 打开 pcap 文件
             try {
@@ -271,6 +276,8 @@ object CaptureController {
             udpPackets = udpPkts.get(),
             icmpPackets = icmpPkts.get(),
             otherPackets = otherPkts.get(),
+            tlsVersions = synchronized(tlsVersions) { tlsVersions.toMap() },
+            quicPackets = quicPkts.get(),
             flows = flows.values.sortedByDescending { it.sentBytes + it.recvBytes }.take(30),
             topDomains = domains.entries.sortedByDescending { it.value }.take(15).map { it.key to it.value.toLong() },
             httpRequests = httpReqs.toList().takeLast(20).reversed(),
@@ -370,6 +377,11 @@ object CaptureController {
         val srcPort = ((buf[offset].toInt() and 0xFF) shl 8) or (buf[offset + 1].toInt() and 0xFF)
         val dstPort = ((buf[offset + 2].toInt() and 0xFF) shl 8) or (buf[offset + 3].toInt() and 0xFF)
         val payloadLen = n - offset - 8
+        // QUIC 检测:UDP 443,长头首字节 0xC0-0xFF
+        if (payloadLen > 0 && dstPort == 443) {
+            val first = buf[offset + 8].toInt() and 0xFF
+            if (first and 0xC0 == 0xC0) quicPkts.incrementAndGet()
+        }
         // DNS 查询:客户端 → 53 端口请求方向
         if (payloadLen > 0 && dstPort == 53) {
             val payload = ByteArray(payloadLen)
@@ -404,6 +416,18 @@ object CaptureController {
     private fun parseSni(payload: ByteArray) {
         // TLS ClientHello 最小结构扫描: 0x16 0x03 ... handshake type 1
         if (payload.size < 44 || (payload[0].toInt() and 0xFF) != 0x16) return
+        // 记录客户端宣告的 TLS 版本 (record version, bytes 1-2)
+        if (payload.size >= 3) {
+            val v = ((payload[1].toInt() and 0xFF) shl 8) or (payload[2].toInt() and 0xFF)
+            val name = when (v) {
+                0x0303 -> "TLS1.2"
+                0x0304 -> "TLS1.3"
+                0x0301 -> "TLS1.0"
+                0x0302 -> "TLS1.1"
+                else -> "0x${String.format("%04X", v)}"
+            }
+            synchronized(tlsVersions) { tlsVersions[name] = (tlsVersions[name] ?: 0) + 1 }
+        }
         // 简单方式:扫描 payload 中可打印 ASCII 域名段(长度 4..63, 字母数字-.)
         val text = String(payload, Charsets.ISO_8859_1)
         val m = Regex("[A-Za-z0-9]([A-Za-z0-9-.]{3,62}[A-Za-z0-9])").find(text, 40)

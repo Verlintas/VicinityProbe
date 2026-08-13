@@ -36,6 +36,7 @@ import com.vicinityprobe.ui.preflight.PreflightScreen
 import com.vicinityprobe.ui.realtime.RealTimeScreen
 import com.vicinityprobe.ui.report.ReportScreen
 import com.vicinityprobe.ui.scanning.ScanningScreen
+import com.vicinityprobe.ui.tools.PacketSenderScreen
 import com.vicinityprobe.ui.trend.TrendScreen
 import com.vicinityprobe.ui.web.WebConsoleScreen
 
@@ -51,6 +52,7 @@ object Routes {
     const val WEB = "web"
     const val REALTIME = "realtime"
     const val CALIB = "calib"
+    const val PACKET = "packet"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -89,5 +91,6 @@ fun AppNav() {
         composable(Routes.WEB) { WebConsoleScreen(nav) }
         composable(Routes.REALTIME) { RealTimeScreen(nav) }
         composable(Routes.CALIB) { CalibrationScreen(nav) }
+        composable(Routes.PACKET) { PacketSenderScreen(nav) }
     }
 }

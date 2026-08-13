@@ -132,9 +132,10 @@ fun CaptureScreen(nav: NavController) {
             }
             item {
                 OutlinedCard(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(t(L("总览", "Totals")), style = MaterialTheme.typography.titleSmall)
                         Text("packets: ${stats.totalPackets}  bytes: ${fmtBytes(stats.totalBytes)}", style = MaterialTheme.typography.bodySmall)
+                        Text("TLS: ${stats.tlsVersions.entries.joinToString("  ") { "${it.key}×${it.value}" }}  QUIC: ${stats.quicPackets}", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
