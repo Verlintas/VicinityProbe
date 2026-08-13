@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VicinityProbe</string>
+    <string name="app_desc">探测手机所有传感器与模块,生成周遭环境数据报告</string>
+</resources>

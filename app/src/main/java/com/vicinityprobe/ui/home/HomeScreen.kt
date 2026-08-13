@@ -1,0 +1,186 @@
+package com.vicinityprobe.ui.home
+
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
+import com.vicinityprobe.R
+import com.vicinityprobe.model.L
+import com.vicinityprobe.model.Labels
+import com.vicinityprobe.probe.CapabilityProbe
+import com.vicinityprobe.probe.Perms
+import com.vicinityprobe.ui.navigation.Routes
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(nav: NavController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lang = context.resources.configuration.locales[0].language
+    val t = { l: L -> Labels.tr(lang, l) }
+
+    var fullMode by remember { mutableStateOf(true) }
+    var durationMs by remember { mutableStateOf(10_000L) }
+    val durations = listOf(5_000L to "5s", 10_000L to "10s", 30_000L to "30s", 60_000L to "60s")
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
+
+    val allGranted = Perms.runtime.all {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = {
+                Column {
+                    Text("VicinityProbe", style = MaterialTheme.typography.titleLarge)
+                    Text(t(L("探测所有传感器,生成周遭环境数据报告", "Probe every sensor & module, generate an environment report")),
+                        style = MaterialTheme.typography.labelSmall)
+                }
+            })
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            OutlinedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t(L("探测模式", "Scan mode")), style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = fullMode, onClick = { fullMode = true })
+                        Column {
+                            Text(t(L("全部探测 + 分析", "Full scan + analysis")))
+                            Text(t(L("探测所有支持项,并生成环境评分与建议", "Probe everything supported, generate score & suggestions")),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = !fullMode, onClick = { fullMode = false })
+                        Column {
+                            Text(t(L("单个探测", "Selected probes")))
+                            Text(t(L("在预检页自定义选择探测模块", "Choose probes on the preflight screen")),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            OutlinedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t(L("扫描时长", "Scan duration")), style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        durations.forEach { (ms, label) ->
+                            FilterChip(
+                                selected = durationMs == ms,
+                                onClick = { durationMs = ms },
+                                label = { Text(label) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            OutlinedCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(t(L("权限状态", "Permissions")), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (allGranted) t(L("全部已授权", "All granted")) else t(L("需要授权", "Required")),
+                            color = if (allGranted) Color(0xFF1B5E20) else MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                    val caps = remember { CapabilityProbe.enumerate(context) }
+                    val granted = Perms.runtime.count { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+                    Text("${granted}/${Perms.runtime.size} ${t(L("项权限已授权", "permissions granted"))}", style = MaterialTheme.typography.bodyMedium)
+                    Text(t(L("本设备支持", "This device supports")) + ": ${CapabilityProbe.supportedCount(caps)}/${caps.size} ${t(L("项探测", "probes"))}", style = MaterialTheme.typography.bodyMedium)
+                    Button(onClick = { permissionLauncher.launch(Perms.runtime.toTypedArray()) }) {
+                        Text(t(L("一键申请权限", "Request all permissions")))
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    if (fullMode) {
+                        val caps = CapabilityProbe.enumerate(context)
+                        val ids = caps.filter { it.status == com.vicinityprobe.probe.CapabilityStatus.SUPPORTED }.map { it.probeId }
+                        nav.navigate(Routes.scan(ids, "FULL", durationMs))
+                    } else {
+                        nav.navigate(Routes.PREFLIGHT)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) {
+                Text(if (fullMode) t(L("开始全部探测", "Start full scan")) else t(L("选择探测项", "Choose probes")), style = MaterialTheme.typography.titleMedium)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.HISTORY) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.History, contentDescription = null)
+                        Text(t(L("历史报告", "History")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.TREND) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.ShowChart, contentDescription = null)
+                        Text(t(L("连续监测", "Monitoring")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.COMPARE) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.CompareArrows, contentDescription = null)
+                        Text(t(L("报告对比", "Compare")))
+                    }
+                }
+            }
+        }
+    }
+}
