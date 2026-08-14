@@ -19,7 +19,7 @@ Each probe entry `ProbeSpec` defines:
 | `keepRawSamples` | Whether raw samples are archived |
 | `requiredPermissions` | Required permissions |
 
-61 probes across 11 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY).
+93 probes across 12 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY).
 
 ## 2. Measurement pipeline
 
@@ -199,7 +199,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | `battery_drain` | **Battery drain rate**: live current×voltage power time series (mW) → mean/min/max power, estimated autonomy from charge counter |
 | `wifi_channel` | **WiFi channel analysis**: AP distribution per channel, 2.4/5/6 GHz band split, per-channel avg RSSI + congestion |
 
-## 5.15 Root-free packet capture (VPNService)
+### 5.15 Root-free packet capture (VPNService)
 
 | Item | Description |
 |---|---|
@@ -215,7 +215,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 
 > ⚠️ **Compliance**: capturing collects plaintext traffic and DNS — high-risk probe; only capture networks you are authorized to inspect. In-app notice shown on the capture screen.
 
-## 5.16 LAN web console (built-in HTTP server)
+### 5.16 LAN web console (built-in HTTP server)
 
 | Item | Description |
 |---|---|
@@ -226,7 +226,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | Remote scan | `POST /api/scan` with `ids` + `duration` → runs a session in the foreground service, report saved to history |
 | Notice | ⚠️ LAN only — never expose to the public internet |
 
-## 5.17 Real-time monitor
+### 5.17 Real-time monitor
 
 | Item | Description |
 |---|---|
@@ -234,7 +234,7 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 | Spectrum waterfall | AudioRecord 4096-pt FFT → 64 log-magnitude bins (0-8 kHz), 40-row waterfall |
 | Alerts | Thresholds (noise dB(A) / temp °C / light lx) checked every 120 ms → high-priority notification (once per 5 s per metric), configurable and toggleable |
 
-## 5.18 Sensor calibration wizard
+### 5.18 Sensor calibration wizard
 
 | Step | Procedure | Output |
 |---|---|---|

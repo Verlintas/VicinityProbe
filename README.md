@@ -1,10 +1,12 @@
 # VicinityProbe
 
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
+
 Professional environmental measurement system: standardized data acquisition from virtually every sensor and system module of your phone, producing measurement reports with data quality gates, raw sample archives, and spectral analysis.
 
 > **AI-generated code notice**: This codebase is substantially generated with the assistance of AI coding tools. Please review it before use in production or security-sensitive contexts.
 
-[中文版](README.zh-CN.md) · [Probe system documentation (EN)](docs/PROBES.md)
+[中文版](README.zh-CN.md) · [Probe docs (EN)](docs/PROBES.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
 
 ## Features
 
@@ -18,19 +20,19 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
-  - **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, TLS SNI extraction, plaintext HTTP request parsing — exportable as **standard pcap** openable in Wireshark
-  - **LAN web console**: built-in HTTP server — desktop-browser dashboard with all reports, raw CSV & pcap downloads, live capture stats, and **remote scan triggering** (LAN only)
-  - **Real-time monitor**: live oscilloscope for sensors (accel/gyro/mag/light/temp/pressure/noise), audio **spectrum waterfall** (FFT), threshold alerts via notification (noise/temp/light)
-  - **Sensor calibration wizard**: guided magnetometer figure-8 (hard-iron offset), accelerometer gravity reference, gyroscope bias — outputs a shareable calibration report
-  - **Security audit engine**: aggregates all security probes (ports/TLS/certificates/HTTP/WiFi/SMB/MQTT/SSH) into a leveled (INFO→CRITICAL) audit report — rendered in-app and shareable as Markdown
-  - **Protocol deep probing**: TLS negotiated cipher suite / protocol / ALPN extraction, SSH version banner, hand-written SMB2 NEGOTIATE (dialect + signing mode)
-  - **Packet sender tool**: custom UDP/TCP payloads in hex with response hex/ASCII echo — for protocol testing on authorized targets
-  - **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection + top-IP traffic ranking
-  - **Hardcore network detection**: **DNS hijack detection** (self-written DNS client, cross-resolver consistency), **ARP spoofing detection** (gateway MAC change monitoring), **mDNS service discovery**, **UPnP device deep-parse** (description XML: types/services/serial), **audio link loopback test** (speaker→mic latency)
-  - **More tools**: HTTP request tool (curl-style: method/headers/body/redirects, full response) + custom port-range scanner (start/end/concurrency/timeout)
-  - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
-  - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
-  - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis
+- **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, TLS SNI extraction, plaintext HTTP request parsing — exportable as **standard pcap** openable in Wireshark
+- **LAN web console**: built-in HTTP server — desktop-browser dashboard with all reports, raw CSV & pcap downloads, live capture stats, and **remote scan triggering** (LAN only)
+- **Real-time monitor**: live oscilloscope for sensors (accel/gyro/mag/light/temp/pressure/noise), audio **spectrum waterfall** (FFT), threshold alerts via notification (noise/temp/light)
+- **Sensor calibration wizard**: guided magnetometer figure-8 (hard-iron offset), accelerometer gravity reference, gyroscope bias — outputs a shareable calibration report
+- **Security audit engine**: aggregates all security probes (ports/TLS/certificates/HTTP/WiFi/SMB/MQTT/SSH) into a leveled (INFO→CRITICAL) audit report — rendered in-app and shareable as Markdown
+- **Protocol deep probing**: TLS negotiated cipher suite / protocol / ALPN extraction, SSH version banner, hand-written SMB2 NEGOTIATE (dialect + signing mode)
+- **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
+- **Packet sender tool**: custom UDP/TCP payloads in hex with response hex/ASCII echo — for protocol testing on authorized targets
+- **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection + top-IP traffic ranking
+- **Hardcore network detection**: **DNS hijack detection** (self-written DNS client, cross-resolver consistency), **ARP spoofing detection** (gateway MAC change monitoring), **mDNS service discovery**, **UPnP device deep-parse** (description XML: types/services/serial), **audio link loopback test** (speaker→mic latency)
+- **More tools**: HTTP request tool (curl-style: method/headers/body/redirects, full response) + custom port-range scanner (start/end/concurrency/timeout)
+- **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
+- **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis
 - **Continuous monitoring**: foreground service with quality trend charts
 - Bilingual UI (Chinese/English, follows system locale)
 
@@ -56,4 +58,5 @@ Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity reco
 - Sound pressure level is an **uncalibrated reference value** (absolute levels require device calibration)
 - `thermal` / CPU frequency sysfs files are unreadable on most devices
 - WiFi scans are subject to system throttling
-- All data is processed locally — no network access, no telemetry, no cloud sync
+- No telemetry, no cloud sync — all data stays on-device; active network probes (port scan, packet capture, DNS comparison, LAN discovery…) run only when you trigger them
+- Sound pressure level and magnetic-field level are uncalibrated reference values
