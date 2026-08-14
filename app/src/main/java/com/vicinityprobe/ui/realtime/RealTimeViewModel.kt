@@ -88,7 +88,8 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     private var sensorListener: SensorEventListener? = null
     private var currentMode = WaveMode.ACCEL
 
-    /** 环形缓冲:每通道 800 点 */
+    /** 环形缓冲:每通道 800 点。跨线程访问必须持有 ringLock */
+    private val ringLock = Any()
     private val ring = HashMap<String, FloatArray>()
     private val ringIdx = HashMap<String, Int>()
     private var ringCount = 0
@@ -96,9 +97,9 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
 
     private var audioRecord: AudioRecord? = null
     private val spectrumRows = ArrayDeque<FloatArray>()
-    private var lastNoiseDb = 0.0
-    private var lastTemp = 0.0
-    private var lastLight = 0.0
+    @Volatile private var lastNoiseDb = 0.0
+    @Volatile private var lastTemp = 0.0
+    @Volatile private var lastLight = 0.0
 
     fun start(mode: WaveMode) {
         currentMode = mode
@@ -133,7 +134,10 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         sensorThread = null
         sensorHandler = null
         sensorListener = null
+        // 先停止录音使 read() 返回,再中断并 join 采集线程,防旧线程继续写 ring
         try { audioRecord?.stop() } catch (_: Throwable) {}
+        audioThread?.interrupt()
+        try { audioThread?.join(500) } catch (_: Throwable) {}
         try { audioRecord?.release() } catch (_: Throwable) {}
         audioRecord = null
         audioThread = null
@@ -156,11 +160,16 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
             return
         }
         val sensor = sm.getDefaultSensor(type) ?: return
-        ring.clear(); ringIdx.clear(); ringCount = 0; spectrumRows.clear()
+        synchronized(ringLock) {
+            ring.clear(); ringIdx.clear(); ringCount = 0
+        }
+        spectrumRows.clear()
         val chCount = if (mode == WaveMode.LIGHT || mode == WaveMode.TEMP || mode == WaveMode.PRESSURE) 1 else 3
-        for (i in 0 until chCount) {
-            ring["ch$i"] = FloatArray(ringSize)
-            ringIdx["ch$i"] = 0
+        synchronized(ringLock) {
+            for (i in 0 until chCount) {
+                ring["ch$i"] = FloatArray(ringSize)
+                ringIdx["ch$i"] = 0
+            }
         }
         val thread = HandlerThread("realtime-sensor")
         thread.start()
@@ -169,13 +178,15 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         sensorListener = object : SensorEventListener {
             override fun onSensorChanged(e: SensorEvent) {
                 val n = if (e.values.size >= 3 && chCount == 3) 3 else 1
-                for (i in 0 until n) {
-                    val arr = ring["ch$i"] ?: continue
-                    val idx = ringIdx["ch$i"] ?: 0
-                    arr[idx] = e.values[i]
-                    ringIdx["ch$i"] = (idx + 1) % ringSize
+                synchronized(ringLock) {
+                    for (i in 0 until n) {
+                        val arr = ring["ch$i"] ?: continue
+                        val idx = ringIdx["ch$i"] ?: 0
+                        arr[idx] = e.values[i]
+                        ringIdx["ch$i"] = (idx + 1) % ringSize
+                    }
+                    if (ringCount < ringSize) ringCount++
                 }
-                if (ringCount < ringSize) ringCount++
                 if (mode == WaveMode.TEMP) lastTemp = e.values[0].toDouble()
                 if (mode == WaveMode.LIGHT) lastLight = e.values[0].toDouble()
             }
@@ -189,8 +200,13 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     private fun startNoise() {
         val minBuf = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         if (minBuf <= 0) return
-        ring.clear(); ringIdx.clear(); ringCount = 0; spectrumRows.clear()
-        ring["ch0"] = FloatArray(ringSize); ringIdx["ch0"] = 0
+        synchronized(ringLock) {
+            ring.clear(); ringIdx.clear(); ringCount = 0
+        }
+        spectrumRows.clear()
+        synchronized(ringLock) {
+            ring["ch0"] = FloatArray(ringSize); ringIdx["ch0"] = 0
+        }
         val rec = try {
             AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBuf.coerceAtLeast(8192))
         } catch (_: Throwable) { null } ?: return
@@ -206,11 +222,13 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
                 val rms = kotlin.math.sqrt(sumSq / read)
                 val db = if (rms > 0) 20 * ln(rms / 32767.0) / ln(10.0) + 94.0 else 0.0
                 lastNoiseDb = db
-                val arr = ring["ch0"]!!
-                val idx = ringIdx["ch0"]!!
-                arr[idx] = db.toFloat()
-                ringIdx["ch0"] = (idx + 1) % ringSize
-                if (ringCount < ringSize) ringCount++
+                synchronized(ringLock) {
+                    val arr = ring["ch0"] ?: return@synchronized
+                    val idx = ringIdx["ch0"] ?: 0
+                    arr[idx] = db.toFloat()
+                    ringIdx["ch0"] = (idx + 1) % ringSize
+                    if (ringCount < ringSize) ringCount++
+                }
             }
         }.apply { isDaemon = true; start() }
     }
@@ -219,7 +237,10 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     private fun startSpectrum() {
         val minBuf = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         if (minBuf <= 0) return
-        ring.clear(); ringIdx.clear(); ringCount = 0; spectrumRows.clear()
+        synchronized(ringLock) {
+            ring.clear(); ringIdx.clear(); ringCount = 0
+        }
+        spectrumRows.clear()
         val rec = try {
             AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBuf.coerceAtLeast(16384))
         } catch (_: Throwable) { null } ?: return
@@ -228,17 +249,27 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
             rec.startRecording()
             val fftSize = 4096
             val buf = ShortArray(fftSize)
+            var fill = 0
             while (!Thread.currentThread().isInterrupted) {
-                val read = try { rec.read(buf, 0, fftSize) } catch (_: Throwable) { -1 }
-                if (read < fftSize) continue
+                val want = fftSize - fill
+                val read = try { rec.read(buf, fill, want) } catch (_: Throwable) { -1 }
+                if (read < 0) break
+                fill += read
+                if (read == 0 && fill == 0) {
+                    // 麦克风忙/出错:休眠退避,避免 100% CPU 空转
+                    try { Thread.sleep(20) } catch (_: InterruptedException) { break }
+                    continue
+                }
+                if (fill < fftSize) continue
+                fill = 0
                 val samples = DoubleArray(fftSize) { buf[it] / 32767.0 }
                 val (_, power) = Fft.powerSpectrum(samples, 44100.0)
                 // 取 0-8kHz 对数幅度,64 个 bin
                 val bins = 64
                 val row = FloatArray(bins)
                 var sumSq = 0.0
-                for (i in 0 until read) sumSq += buf[i].toDouble() * buf[i]
-                val db = if (sumSq > 0) 20 * ln(kotlin.math.sqrt(sumSq / read) / 32767.0) / ln(10.0) + 94.0 else 0.0
+                for (i in 0 until fftSize) sumSq += buf[i].toDouble() * buf[i]
+                val db = if (sumSq > 0) 20 * ln(kotlin.math.sqrt(sumSq / fftSize) / 32767.0) / ln(10.0) + 94.0 else 0.0
                 lastNoiseDb = db
                 val maxBin = kotlin.math.min(power.size, 8 * 1024 / (44100 / fftSize))
                 for (b in 0 until bins) {
@@ -270,10 +301,16 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         val series = if (currentMode == WaveMode.SPECTRUM) {
             listOf(floatArrayOf(lastNoiseDb.toFloat()))
         } else {
+            val (idxs, count) = synchronized(ringLock) {
+                val idx = HashMap<String, Int>(ringIdx)
+                val c = minOf(ringCount, ringSize)
+                idx to c
+            }
             (0 until labels.size).map { i ->
-                val arr = ring["ch$i"] ?: FloatArray(0)
-                val n = minOf(ringCount, ringSize)
-                FloatArray(n) { arr[(ringIdx["ch$i"]!! - n + it + ringSize) % ringSize] }
+                val arr = synchronized(ringLock) { ring["ch$i"] } ?: FloatArray(0)
+                val startIdx = idxs["ch$i"] ?: 0
+                val n = minOf(count, arr.size)
+                FloatArray(n) { arr[(startIdx - n + it + arr.size) % arr.size] }
             }
         }
         val values = series.map { s -> if (s.isEmpty()) "—" else String.format("%.2f", s.last()) }

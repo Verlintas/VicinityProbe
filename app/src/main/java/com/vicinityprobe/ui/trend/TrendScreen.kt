@@ -67,6 +67,40 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun TrendInferenceCard(
+    title: String,
+    inference: com.vicinityprobe.ui.trend.TrendViewModel.TrendInference?,
+    t: (com.vicinityprobe.model.L) -> String,
+) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            if (inference == null) {
+                Text(
+                    t(L("至少 3 条记录才能推断趋势", "At least 3 records needed for trend inference")),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val trend = t(if (inference.stationary)
+                    L("统计上平稳(无显著趋势)", "Statistically stationary (no significant trend)")
+                else if (inference.slopePerDay > 0)
+                    L("显著上升趋势", "Significant upward trend")
+                else
+                    L("显著下降趋势", "Significant downward trend"))
+                Text(trend, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "${t(L("斜率", "slope"))}: ${String.format("%+.2f", inference.slopePerDay)}/day · R² = ${String.format("%.2f", inference.r2)} · p = ${String.format("%.3f", inference.pValue)} · n = ${inference.points}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun TrendScreen(nav: NavController) {
     val context = LocalContext.current
     val lang = langOf(context)
@@ -130,6 +164,20 @@ fun TrendScreen(nav: NavController) {
                     Text(t(L("数据质量等级趋势", "Quality level trend")), style = MaterialTheme.typography.titleSmall)
                     val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPt(i.toLong(), m.okCount.toDouble()) }
                     LineChart(pts, t(L("OK 项数", "OK count")), "")
+                }
+                item {
+                    TrendInferenceCard(
+                        title = t(L("EXCELLENT 趋势推断", "EXCELLENT trend inference")),
+                        inference = vm.inferTrend { it.excellentCount.toDouble() },
+                        t = t,
+                    )
+                }
+                item {
+                    TrendInferenceCard(
+                        title = t(L("OK 趋势推断", "OK trend inference")),
+                        inference = vm.inferTrend { it.okCount.toDouble() },
+                        t = t,
+                    )
                 }
             }
             item {

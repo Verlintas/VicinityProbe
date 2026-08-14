@@ -33,6 +33,28 @@ import kotlin.math.sqrt
  * 输入长度须为 2 的幂;就地变换,输出为复数数组(实部在前)。
  */
 object Fft {
+    /** 蝶形因子缓存:key = 变换长度,value = 各 stage 的旋转因子表(避免重复计算 cos/sin) */
+    private val twiddleCache = HashMap<Int, Array<DoubleArray>>()
+    private const val TWIDDLE_CACHE_MAX = 4
+
+    private fun twiddles(n: Int): Array<DoubleArray> {
+        synchronized(twiddleCache) {
+            twiddleCache[n]?.let { return it }
+            val stages = Array(32) { idx ->
+                val len = 2 shl idx
+                if (len <= 0 || len > n) DoubleArray(0) else {
+                    val ang = -2 * PI / len
+                    DoubleArray(len) { i ->
+                        if (i % 2 == 0) cos(ang * (i / 2)) else sin(ang * (i / 2))
+                    }
+                }
+            }
+            if (twiddleCache.size >= TWIDDLE_CACHE_MAX) twiddleCache.clear()
+            twiddleCache[n] = stages
+            return stages
+        }
+    }
+
     fun fft(re: DoubleArray, im: DoubleArray) {
         require(re.size == im.size && re.size and (re.size - 1) == 0) { "长度必须为 2 的幂" }
         val n = re.size
@@ -51,30 +73,31 @@ object Fft {
                 t = im[i]; im[i] = im[j]; im[j] = t
             }
         }
+        val table = twiddles(n)
+        var stage = 0
         var len = 2
         while (len <= n) {
-            val ang = -2 * PI / len
-            val wRe = cos(ang)
-            val wIm = sin(ang)
+            val tw = table[stage]
             var i = 0
             while (i < n) {
-                var curRe = 1.0
-                var curIm = 0.0
-                for (k in 0 until len / 2) {
+                var k = 0
+                val half = len / 2
+                while (k < half) {
+                    val wRe = tw[k * 2]
+                    val wIm = tw[k * 2 + 1]
                     val ur = re[i + k]
                     val ui = im[i + k]
-                    val vr = re[i + k + len / 2] * curRe - im[i + k + len / 2] * curIm
-                    val vi = re[i + k + len / 2] * curIm + im[i + k + len / 2] * curRe
+                    val vr = re[i + k + half] * wRe - im[i + k + half] * wIm
+                    val vi = re[i + k + half] * wIm + im[i + k + half] * wRe
                     re[i + k] = ur + vr
                     im[i + k] = ui + vi
-                    re[i + k + len / 2] = ur - vr
-                    im[i + k + len / 2] = ui - vi
-                    val nRe = curRe * wRe - curIm * wIm
-                    curIm = curRe * wIm + curIm * wRe
-                    curRe = nRe
+                    re[i + k + half] = ur - vr
+                    im[i + k + half] = ui - vi
+                    k++
                 }
                 i += len
             }
+            stage++
             len = len shl 1
         }
     }
@@ -162,12 +185,19 @@ class SpectrumAnalyzer(private val fsHz: Double) {
             "mid" to (200.0 to 2000.0),
             "high" to (2000.0 to fsHz / 2),
         )
+        // 谱峰与谐波分析
+        val pk = SpectralAnalysis.peaks(freq, power, minProminence = 0.08, minFreqHz = minFreqHz)
+        val harmonics = if (df > 0) SpectralAnalysis.harmonics(freq, power, df) else null
         return com.vicinityprobe.model.domain.SpectrumResult(
             method = "FFT-$n-Hann",
             dominantFrequencyHz = (df * 100).roundToLong() / 100.0,
             dominantAmplitude = (da * 1e6).roundToLong() / 1e6,
             flatness = (Fft.flatness(power) * 100).roundToLong() / 100.0,
             bandEnergy = Fft.bandEnergy(freq, power, bands).mapValues { (it.value * 100).roundToLong() / 100.0 },
+            topPeaks = pk.take(5).map { (it.frequencyHz * 100).roundToLong() / 100.0 },
+            fundamentalHz = harmonics?.fundamentalHz,
+            thdPercent = harmonics?.thdPercent,
+            harmonicRichness = harmonics?.harmonicRichness,
         )
     }
 
@@ -189,4 +219,104 @@ object AWeighting {
         val den = (f2 + 20.6.pow(2.0)) * sqrt((f2 + 107.7.pow(2.0)) * (f2 + 737.9.pow(2.0))) * (f2 + 12194.0.pow(2.0))
         return 20 * kotlin.math.log10(num / den)
     }
+}
+
+/** 谱峰检测结果 */
+data class SpectralPeak(val frequencyHz: Double, val amplitude: Double)
+
+/** 谐波分析结果 */
+data class HarmonicResult(
+    val fundamentalHz: Double,
+    val harmonics: List<SpectralPeak>,     // 2f, 3f, ...(最多 8 阶,频率窗口内)
+    val thdPercent: Double,                // 总谐波失真(相对基波)
+    val harmonicRichness: Double,          // 谐波能量占比 (0..1)
+)
+
+/**
+ * 频谱增强分析:
+ * 1) [peaks] 带显著度(prominence)的谱峰检测
+ * 2) [harmonics] 谐波分析:由基频定位 2f..8f 的谐波与 THD
+ */
+object SpectralAnalysis {
+
+    /**
+     * 谱峰检测:局部极大 + 幅度 ≥ maxAmplitude * minProminence 才计入。
+     * @param minProminence 相对最大峰的最小显著度(0..1),默认 0.1
+     */
+    fun peaks(freq: DoubleArray, power: DoubleArray, minProminence: Double = 0.1, minFreqHz: Double = 1.0): List<SpectralPeak> {
+        val maxAmp = (power.maxOrNull() ?: 0.0)
+        if (maxAmp <= 0) return emptyList()
+        val out = ArrayList<SpectralPeak>()
+        for (i in 1 until power.size - 1) {
+            if (freq[i] < minFreqHz) continue
+            val p = power[i]
+            if (p < maxAmp * minProminence) continue
+            if (p > power[i - 1] && p >= power[i + 1]) {
+                // 二次插值精确定位峰频
+                val a = power[i - 1]; val b = p; val c = power[i + 1]
+                val denom = a - 2 * b + c
+                val delta = if (kotlin.math.abs(denom) > 1e-12) 0.5 * (a - c) / denom else 0.0
+                val fPeak = freq[i] + delta * (freq[1] - freq[0])
+                out.add(SpectralPeak((fPeak * 100).roundToLong() / 100.0, p))
+            }
+        }
+        return out.sortedByDescending { it.amplitude }
+    }
+
+    /**
+     * 谐波分析:给定基频,在 ±2% 容差窗内寻找 2..8 次谐波。
+     * @return null 当基频无效或谱过短
+     */
+    fun harmonics(freq: DoubleArray, power: DoubleArray, fundamentalHz: Double, minProminence: Double = 0.05): HarmonicResult? {
+        if (fundamentalHz <= 0 || freq.size < 8) return null
+        val f0 = fundamentalHz
+        val f0Power = powerNearest(freq, power, f0)
+        if (f0Power <= 0) return null
+        val df = freq[1] - freq[0]
+        if (df <= 0) return null
+        val hs = ArrayList<SpectralPeak>()
+        var harmonicEnergy = 0.0
+        for (order in 2..8) {
+            val target = f0 * order
+            if (target > freq.last()) break
+            val idx = ((target - freq.first()) / df).toInt().coerceIn(0, freq.size - 1)
+            val searchFrom = (idx - 1).coerceAtLeast(0)
+            val searchTo = (idx + 1).coerceAtMost(freq.size - 1)
+            var bestI = searchFrom
+            for (i in searchFrom..searchTo) if (power[i] > power[bestI]) bestI = i
+            // 按幅度比(power 开方)判断显著度
+            if (sqrt(power[bestI]) > sqrt(f0Power) * minProminence) {
+                hs.add(SpectralPeak((freq[bestI] * 100).roundToLong() / 100.0, power[bestI]))
+                harmonicEnergy += power[bestI]
+            }
+        }
+        val thd = if (f0Power > 0) 100.0 * sqrt(harmonicEnergy) / sqrt(f0Power) else 0.0
+        return HarmonicResult(
+            fundamentalHz = (f0 * 100).roundToLong() / 100.0,
+            harmonics = hs,
+            thdPercent = (thd * 100).roundToLong() / 100.0,
+            harmonicRichness = if (f0Power + harmonicEnergy > 0)
+                (harmonicEnergy / (f0Power + harmonicEnergy) * 1000).roundToLong() / 1000.0 else 0.0,
+        )
+    }
+
+    private fun powerNearest(freq: DoubleArray, power: DoubleArray, target: Double): Double {
+        var best = 0
+        var bestDiff = Double.MAX_VALUE
+        for (i in freq.indices) {
+            val d = kotlin.math.abs(freq[i] - target)
+            if (d < bestDiff) { bestDiff = d; best = i }
+        }
+        return power[best]
+    }
+
+    /** 谐波失真等级判定(参考):<1% 纯净,<5% 轻微,<25% 失真,其余严重 */
+    fun thdLevel(thdPercent: Double): String = when {
+        thdPercent < 1.0 -> "clean"
+        thdPercent < 5.0 -> "slightly-distorted"
+        thdPercent < 25.0 -> "distorted"
+        else -> "severely-distorted"
+    }
+
+    private fun Double.roundToLong(): Long = Math.round(this)
 }

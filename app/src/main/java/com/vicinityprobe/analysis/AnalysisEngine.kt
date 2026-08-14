@@ -71,11 +71,26 @@ object AnalysisEngine {
             rms < 0.3 -> "moderate"
             else -> "severe"
         }
+        // 周期检测:对加速度幅值序列做自相关
+        var periodic: Boolean? = null
+        var periodSeconds: Double? = null
+        val series = m.series["magnitude"]?.map { it.v }
+        if (series != null && series.size >= 32) {
+            val dt = if (m.series["magnitude"]!!.size > 1)
+                (m.series["magnitude"]!![1].tMs - m.series["magnitude"]!![0].tMs).coerceAtLeast(1L) / 1000.0 else 0.01
+            com.vicinityprobe.analysis.Autocorrelation.detectPeriod(series, dt)?.let { (_, _, period) ->
+                periodic = true
+                periodSeconds = (period * 100).roundToLong() / 100.0
+            } ?: run { periodic = false }
+        }
         return VibrationSummary(
             dominantFrequencyHz = dominant,
             rmsMs2 = (rms * 1000).roundToLong() / 1000.0,
             crestFactor = (crest * 100).roundToLong() / 100.0,
             vibrationLevel = level,
+            thdPercent = m.spectrum?.thdPercent,
+            periodic = periodic,
+            periodSeconds = periodSeconds,
         )
     }
 

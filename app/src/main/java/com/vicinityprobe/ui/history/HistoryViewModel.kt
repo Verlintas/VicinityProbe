@@ -27,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import com.vicinityprobe.report.HistoryManager
 import com.vicinityprobe.report.ReportMeta
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -39,7 +40,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch { _items.value = history.list() }
+        viewModelScope.launch { _items.value = withContext(kotlinx.coroutines.Dispatchers.IO) { history.list() } }
     }
 
     fun rename(id: String, name: String) {

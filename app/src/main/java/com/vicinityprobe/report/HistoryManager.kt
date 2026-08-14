@@ -50,6 +50,8 @@ data class ReportMeta(
 class HistoryManager(private val context: Context) {
     private val dir: File get() = File(context.filesDir, "reports")
     private val indexFile: File get() = File(dir, "index.json")
+    /** 序列化 index.json 的 read-modify-write 操作,防并发丢失更新/半写 */
+    private val indexLock = Any()
 
     private val json = Json {
         prettyPrint = true
@@ -58,14 +60,16 @@ class HistoryManager(private val context: Context) {
     }
 
     fun save(report: MeasurementReport): ReportMeta {
-        dir.mkdirs()
-        val reportDir = File(dir, report.id)
-        reportDir.mkdirs()
-        File(reportDir, "report.json").writeText(JsonReport.encode(report))
-        val meta = metaOf(report)
-        val index = list().filterNot { it.id == meta.id } + meta
-        indexFile.writeText(json.encodeToString(index.sortedByDescending { it.createdAt }))
-        return meta
+        synchronized(indexLock) {
+            dir.mkdirs()
+            val reportDir = File(dir, report.id)
+            reportDir.mkdirs()
+            File(reportDir, "report.json").writeText(JsonReport.encode(report))
+            val meta = metaOf(report)
+            val index = list().filterNot { it.id == meta.id } + meta
+            indexFile.writeText(json.encodeToString(index.sortedByDescending { it.createdAt }))
+            return meta
+        }
     }
 
     fun list(): List<ReportMeta> {
@@ -92,7 +96,11 @@ class HistoryManager(private val context: Context) {
         return sorted
     }
 
+    /** 校验报告 id,拒绝路径穿越字符 */
+    private fun validId(id: String): Boolean = id.matches(Regex("[A-Za-z0-9_-]+"))
+
     fun load(id: String): MeasurementReport? {
+        if (!validId(id)) return null
         val f = File(dir, "$id/report.json")
         if (!f.exists()) return null
         return try {
@@ -101,18 +109,25 @@ class HistoryManager(private val context: Context) {
     }
 
     fun samplesDir(id: String): File? {
+        if (!validId(id)) return null
         val d = File(dir, "$id/samples")
         return if (d.exists()) d else null
     }
 
     fun rename(id: String, newName: String) {
-        val metas = list().map { if (it.id == id) it.copy(name = newName.trim().ifEmpty { it.name }) else it }
-        indexFile.writeText(json.encodeToString(metas))
+        if (!validId(id)) return
+        synchronized(indexLock) {
+            val metas = list().map { if (it.id == id) it.copy(name = newName.trim().ifEmpty { it.name }) else it }
+            indexFile.writeText(json.encodeToString(metas))
+        }
     }
 
     fun delete(id: String) {
-        File(dir, id).deleteRecursively()
-        indexFile.writeText(json.encodeToString(list().filterNot { it.id == id }))
+        if (!validId(id)) return
+        synchronized(indexLock) {
+            File(dir, id).deleteRecursively()
+            indexFile.writeText(json.encodeToString(list().filterNot { it.id == id }))
+        }
     }
 
     private fun metaOf(report: MeasurementReport): ReportMeta {

@@ -23,6 +23,7 @@ package com.vicinityprobe.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -39,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vicinityprobe.model.domain.QualityLevel
@@ -65,7 +71,20 @@ fun LineChart(
             textSize = 22f
             setColor(android.graphics.Color.GRAY)
         }
-        Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+        var hoverIndex by remember(points.size) { mutableStateOf(-1) }
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .pointerInput(points.size) {
+                    detectTapGestures { pos ->
+                        val pad = 8.dp.toPx()
+                        val w = size.width
+                        val frac = ((pos.x - pad) / (w - 2 * pad)).coerceIn(0f, 1f)
+                        hoverIndex = (frac * (points.size - 1)).toInt()
+                    }
+                },
+        ) {
             val w = size.width
             val h = size.height
             val pad = 8.dp.toPx()
@@ -79,8 +98,24 @@ fun LineChart(
             drawLine(Color.Gray.copy(alpha = 0.4f), Offset(pad, h - pad), Offset(w - pad, h - pad), 1f)
             drawContext.canvas.nativeCanvas.drawText(minV.toString(), 0f, h - 8.dp.toPx(), tickPaint)
             drawContext.canvas.nativeCanvas.drawText(maxV.toString(), 0f, 30f, tickPaint)
+            // 触摸高亮:十字线 + 数据点
+            if (hoverIndex in points.indices) {
+                val p = points[hoverIndex]
+                val hx = pad + (w - 2 * pad) * (hoverIndex.toFloat() / (points.size - 1))
+                val hy = pad + (h - 2 * pad) * (1f - ((p.v - minV) / span).toFloat())
+                drawLine(Color.Gray.copy(alpha = 0.7f), Offset(hx, pad), Offset(hx, h - pad), 1f)
+                drawLine(Color.Gray.copy(alpha = 0.7f), Offset(pad, hy), Offset(w - pad, hy), 1f)
+                drawCircle(Color.White.copy(alpha = 0.9f), radius = 8f, center = Offset(hx, hy))
+                drawCircle(color, radius = 5f, center = Offset(hx, hy))
+            }
         }
-        Text("min $minV · max $maxV $unit", style = MaterialTheme.typography.labelSmall)
+        Text(
+            if (hoverIndex >= 0 && hoverIndex in points.indices)
+                "t=${points[hoverIndex].tMs}ms · v=${points[hoverIndex].v} $unit"
+            else "min $minV · max $maxV $unit",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (hoverIndex >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

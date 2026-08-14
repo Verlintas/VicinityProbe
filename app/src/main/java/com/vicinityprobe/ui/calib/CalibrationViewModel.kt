@@ -34,6 +34,7 @@ data class CalibResult(
     val totalMs: Long = 20_000,
     val samples: Int = 0,
     val liveValue: String = "—",
+    val error: String? = null,
     val magOffsetX: Double = 0.0,
     val magOffsetY: Double = 0.0,
     val magOffsetZ: Double = 0.0,
@@ -77,7 +78,19 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
             CalibStep.GYRO -> Sensor.TYPE_GYROSCOPE
             CalibStep.DONE -> return
         }
-        val sensor = sm.getDefaultSensor(type) ?: return
+        val sensor = sm.getDefaultSensor(type)
+        if (sensor == null) {
+            // 传感器缺失时给出可见反馈,不再静默返回
+            _state.value = _state.value.copy(
+                step = step,
+                error = when (step) {
+                    CalibStep.MAG -> "磁力计不可用|Magnetometer unavailable"
+                    CalibStep.ACCEL -> "加速度计不可用|Accelerometer unavailable"
+                    else -> "陀螺仪不可用|Gyroscope unavailable"
+                },
+            )
+            return
+        }
         val thread = HandlerThread("calib").apply { start() }
         this.thread = thread
         handler = Handler(thread.looper)

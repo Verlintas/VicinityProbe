@@ -3,19 +3,6 @@
  *
  * Copyright (C) 2026 Verlintas
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -27,9 +14,11 @@ import androidx.lifecycle.viewModelScope
 import com.vicinityprobe.model.domain.MeasurementReport
 import com.vicinityprobe.report.HistoryManager
 import com.vicinityprobe.report.ReportExporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class ReportViewModel(application: Application) : AndroidViewModel(application) {
@@ -38,8 +27,13 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     private val _report = MutableStateFlow<MeasurementReport?>(null)
     val report: StateFlow<MeasurementReport?> = _report
 
+    private val _exporting = MutableStateFlow(false)
+    val exporting: StateFlow<Boolean> = _exporting
+
     fun load(id: String) {
-        viewModelScope.launch { _report.value = history.load(id) }
+        viewModelScope.launch {
+            _report.value = withContext(Dispatchers.IO) { history.load(id) }
+        }
     }
 
     fun samplesDir(id: String): File? = history.samplesDir(id)
@@ -49,7 +43,27 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
         return com.vicinityprobe.analysis.SecurityAudit.markdown(report, findings, lang)
     }
 
-    fun exportJson() = _report.value?.let { ReportExporter.writeJson(getApplication(), it) }
-    fun exportMd(lang: String) = _report.value?.let { ReportExporter.writeMarkdown(getApplication(), it, lang) }
-    fun exportZip() = _report.value?.let { ReportExporter.shareZip(getApplication(), it) }
+    /** 导出在 IO 线程执行,完成后通过系统分享面板共享,避免主线程 ANR */
+    fun export(kind: String, lang: String = "zh") {
+        val report = _report.value ?: return
+        if (_exporting.value) return
+        viewModelScope.launch {
+            _exporting.value = true
+            try {
+                val f: File? = withContext(Dispatchers.IO) {
+                    when (kind) {
+                        "json" -> ReportExporter.writeJson(getApplication(), report)
+                        "md" -> ReportExporter.writeMarkdown(getApplication(), report, lang)
+                        "zip" -> ReportExporter.shareZip(getApplication(), report)
+                        else -> null
+                    }
+                }
+                f?.let { ReportExporter.shareFile(getApplication(), it, when (kind) { "json" -> "application/json"; "md" -> "text/markdown"; else -> "application/zip" }) }
+            } catch (_: Throwable) {
+                // 导出失败静默处理(避免崩溃);后续可加 toast
+            } finally {
+                _exporting.value = false
+            }
+        }
+    }
 }

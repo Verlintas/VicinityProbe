@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -87,6 +88,11 @@ class PacketCaptureService : VpnService() {
         if (captureJob?.isActive == true) return
         createChannel()
         startForeground(NOTIFICATION_ID, buildNotification("capturing…"))
+        // 清理上一次未正常关闭的 TUN/作业,防 fd 泄漏
+        captureJob?.cancel()
+        captureJob = null
+        try { tunFd?.close() } catch (_: Throwable) {}
+        tunFd = null
         val builder = this.Builder()
         builder.setSession("VicinityProbe capture")
         builder.addAddress(VIRTUAL_IP, 32)
@@ -106,12 +112,21 @@ class PacketCaptureService : VpnService() {
         captureJob = scope.launch {
             val input = FileInputStream(fd.fileDescriptor)
             val buf = ByteArray(TUN_MTU)
-            while (isActive) {
-                val n = try { input.read(buf) } catch (_: Throwable) { -1 }
-                if (n <= 0) break
-                CaptureController.onPacket(buf, n)
+            try {
+                while (isActive) {
+                    val n = try { input.read(buf) } catch (_: Throwable) { -1 }
+                    if (n <= 0) break
+                    CaptureController.onPacket(buf, n)
+                }
+            } finally {
+                try { input.close() } catch (_: Throwable) {}
+                // TUN 意外死亡:清理状态,避免通知/运行态残留
+                try { fd.close() } catch (_: Throwable) {}
+                if (this@PacketCaptureService.tunFd === fd) this@PacketCaptureService.tunFd = null
+                CaptureController.finalizeCapture()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
-            try { input.close() } catch (_: Throwable) {}
         }
         // 每秒刷新 UI 统计
         scope.launch {
@@ -187,7 +202,9 @@ data class CaptureStats(
     val icmpPackets: Long = 0,
     val otherPackets: Long = 0,
     val tlsVersions: Map<String, Long> = emptyMap(),
+    val tlsJa3: Map<String, Long> = emptyMap(),        // JA3 风格 TLS 指纹计数
     val quicPackets: Long = 0,
+    val protocols: Map<String, Long> = emptyMap(),     // 应用层协议识别
     val topIps: List<Pair<String, Long>> = emptyList(),
     val flows: List<FlowEntry> = emptyList(),
     val topDomains: List<Pair<String, Long>> = emptyList(),
@@ -203,8 +220,9 @@ object CaptureController {
     private val flows = LinkedHashMap<String, FlowEntry>()
     private val domains = HashMap<String, Long>()
     private val httpReqs = ArrayDeque<String>()
-    private var pcapOut: FileOutputStream? = null
+    private var pcapOut: BufferedOutputStream? = null
     private var pcapFile: File? = null
+    private var pcapWritten: Long = 0
     private var startedAt = 0L
     private val packets = AtomicLong(0)
     private val bytes = AtomicLong(0)
@@ -215,13 +233,28 @@ object CaptureController {
     private val httpTime = AtomicLong(0)
     private val quicPkts = AtomicLong(0)
     private val tlsVersions = HashMap<String, Long>()
+    private val tlsJa3 = HashMap<String, Long>()
+    private val protocols = HashMap<String, Long>()
     private val ipBytes = HashMap<String, Long>()
+
+    /** 常见应用协议端口映射 */
+    private val PROTO_PORTS = mapOf(
+        53 to "DNS", 67 to "DHCP", 68 to "DHCP", 123 to "NTP", 1900 to "SSDP", 5353 to "mDNS",
+        443 to "HTTPS", 80 to "HTTP", 8080 to "HTTP", 8443 to "HTTPS", 22 to "SSH",
+        25 to "SMTP", 110 to "POP3", 143 to "IMAP", 389 to "LDAP", 3389 to "RDP",
+    )
+
+    /** pcap 文件上限 256MB,防磁盘耗尽 */
+    private const val PCAP_MAX_BYTES = 256L * 1024 * 1024
+    /** SNI/域名提取正则(预编译,防每包编译) */
+    private val SNI_REGEX = Regex("[A-Za-z0-9]([A-Za-z0-9-.]{3,62}[A-Za-z0-9])")
 
     fun reset() {
         synchronized(this) {
             flows.clear(); domains.clear(); httpReqs.clear()
             packets.set(0); bytes.set(0); tcpPkts.set(0); udpPkts.set(0); icmpPkts.set(0); otherPkts.set(0)
             quicPkts.set(0); tlsVersions.clear(); ipBytes.clear()
+            tlsJa3.clear(); protocols.clear()
             startedAt = System.currentTimeMillis()
             // 打开 pcap 文件
             try {
@@ -230,7 +263,8 @@ object CaptureController {
             val ctx = AppContextHolder.context ?: return
             val dir = File(ctx.filesDir, "captures").apply { mkdirs() }
             pcapFile = File(dir, "capture_${System.currentTimeMillis()}.pcap")
-            pcapOut = FileOutputStream(pcapFile)
+            pcapOut = FileOutputStream(pcapFile).buffered()
+            pcapWritten = 0
             // pcap global header (little-endian)
             val hdr = ByteArray(24)
             putIntLE(hdr, 0, 0xa1b2c3d4.toInt())
@@ -250,14 +284,18 @@ object CaptureController {
         synchronized(this) {
             try {
                 pcapOut?.let { out ->
-                    val now = System.currentTimeMillis()
-                    val hdr = ByteArray(16)
-                    putIntLE(hdr, 0, (now / 1000).toInt())
-                    putIntLE(hdr, 4, ((now % 1000) * 1000).toInt())
-                    putIntLE(hdr, 8, n)
-                    putIntLE(hdr, 12, n)
-                    out.write(hdr)
-                    out.write(buf, 0, n)
+                    // 超过上限后停止写入,保留已抓内容
+                    if (pcapWritten + n < PCAP_MAX_BYTES) {
+                        val now = System.currentTimeMillis()
+                        val hdr = ByteArray(16)
+                        putIntLE(hdr, 0, (now / 1000).toInt())
+                        putIntLE(hdr, 4, ((now % 1000) * 1000).toInt())
+                        putIntLE(hdr, 8, n)
+                        putIntLE(hdr, 12, n)
+                        out.write(hdr)
+                        out.write(buf, 0, n)
+                        pcapWritten += n
+                    }
                 }
             } catch (_: Throwable) {}
             parse(buf, n)
@@ -265,10 +303,17 @@ object CaptureController {
     }
 
     fun tick() {
-        val s = _stats.value
         val now = System.currentTimeMillis()
-        // 清理 45s 无活动的流
-        flows.entries.removeIf { now - it.value.lastSeenMs > 45_000 }
+        // 加锁快照,避免与 onPacket 并发修改
+        val snapshot = synchronized(this) {
+            flows.entries.removeIf { now - it.value.lastSeenMs > 45_000 }
+            Triple(
+                flows.values.sortedByDescending { it.sentBytes + it.recvBytes }.take(30),
+                domains.entries.sortedByDescending { it.value }.take(15).map { it.key to it.value.toLong() },
+                httpReqs.toList().takeLast(20).reversed(),
+            )
+        }
+        try { pcapOut?.flush() } catch (_: Throwable) {}
         _stats.value = CaptureStats(
             running = true,
             durationMs = now - startedAt,
@@ -279,11 +324,13 @@ object CaptureController {
             icmpPackets = icmpPkts.get(),
             otherPackets = otherPkts.get(),
             tlsVersions = synchronized(tlsVersions) { tlsVersions.toMap() },
+            tlsJa3 = synchronized(tlsJa3) { tlsJa3.toMap() },
             quicPackets = quicPkts.get(),
+            protocols = synchronized(protocols) { protocols.toMap() },
             topIps = synchronized(ipBytes) { ipBytes.entries.sortedByDescending { it.value }.take(10).map { it.key to it.value } },
-            flows = flows.values.sortedByDescending { it.sentBytes + it.recvBytes }.take(30),
-            topDomains = domains.entries.sortedByDescending { it.value }.take(15).map { it.key to it.value.toLong() },
-            httpRequests = httpReqs.toList().takeLast(20).reversed(),
+            flows = snapshot.first,
+            topDomains = snapshot.second,
+            httpRequests = snapshot.third,
             pcapFile = pcapFile?.name,
         )
     }
@@ -349,6 +396,15 @@ object CaptureController {
         val serverPort = if (isClient) dstPort else srcPort
         val key = "$proto|$clientIp:$clientPort|$serverIp:$serverPort"
 
+        // 应用层协议识别(按服务端端口)
+        synchronized(protocols) {
+            val pname = PROTO_PORTS[serverPort]
+            if (pname != null) protocols[pname] = (protocols[pname] ?: 0) + 1
+            else {
+                protocols["TCP:other"] = (protocols["TCP:other"] ?: 0) + 1
+            }
+        }
+
         val now = System.currentTimeMillis()
         val existing = flows[key]
         val sent = (existing?.sentBytes ?: 0) + if (isClient) payloadLen else 0
@@ -383,6 +439,11 @@ object CaptureController {
         val srcPort = ((buf[offset].toInt() and 0xFF) shl 8) or (buf[offset + 1].toInt() and 0xFF)
         val dstPort = ((buf[offset + 2].toInt() and 0xFF) shl 8) or (buf[offset + 3].toInt() and 0xFF)
         val payloadLen = n - offset - 8
+        // 应用层协议识别
+        synchronized(protocols) {
+            val pname = PROTO_PORTS[dstPort] ?: "UDP:other"
+            protocols[pname] = (protocols[pname] ?: 0) + 1
+        }
         // QUIC 检测:UDP 443,长头首字节 0xC0-0xFF
         if (payloadLen > 0 && dstPort == 443) {
             val first = buf[offset + 8].toInt() and 0xFF
@@ -438,9 +499,22 @@ object CaptureController {
             }
             synchronized(tlsVersions) { tlsVersions[name] = (tlsVersions[name] ?: 0) + 1 }
         }
+        // JA3 风格指纹:版本 + 密码套件 + 扩展类型(仅首个完整 ClientHello)
+        if (payload.size >= 44 && payload[5].toInt() and 0xFF == 1) {
+            com.vicinityprobe.analysis.TlsClientHello.ja3Fingerprint(payload)?.let { fp ->
+                synchronized(tlsJa3) { tlsJa3[fp] = (tlsJa3[fp] ?: 0) + 1 }
+            }
+            // 精确 SNI 解析(优于正则扫描)
+            com.vicinityprobe.analysis.TlsClientHello.sni(payload)?.let { name ->
+                if (name.length in 4..253) {
+                    domains[name] = (domains[name] ?: 0) + 1
+                }
+                return
+            }
+        }
         // 简单方式:扫描 payload 中可打印 ASCII 域名段(长度 4..63, 字母数字-.)
         val text = String(payload, Charsets.ISO_8859_1)
-        val m = Regex("[A-Za-z0-9]([A-Za-z0-9-.]{3,62}[A-Za-z0-9])").find(text, 40)
+        val m = SNI_REGEX.find(text, 40)
         val name = m?.value
         if (name != null && name.contains('.') && !name.contains(" ") && name.length > 3 && name.length < 64) {
             domains[name] = (domains[name] ?: 0) + 1

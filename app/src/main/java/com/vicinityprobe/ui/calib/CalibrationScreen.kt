@@ -94,6 +94,7 @@ fun CalibrationScreen(nav: NavController) {
             when (st.step) {
                 CalibStep.MAG -> {
                     Text(t(L("手持手机画 8 字,覆盖所有姿态(约 20 秒)", "Move the phone in a figure-8 covering all orientations (~20 s)")), style = MaterialTheme.typography.bodyMedium)
+                    st.error?.let { Text(t(L("传感器不可用,无法标定", "Sensor unavailable")), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             KeyValueRow(t(L("当前磁场幅值", "Current magnitude")), st.liveValue, primary = true)

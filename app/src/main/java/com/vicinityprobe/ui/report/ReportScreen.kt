@@ -49,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,13 +126,13 @@ fun ReportScreen(nav: NavController, reportId: String) {
             r.measurements.forEach { m -> MeasurementCard(m, lang, reportId) }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { vm.exportJson()?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "application/json") } }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = { vm.export("json") }, modifier = Modifier.weight(1f), enabled = !vm.exporting.collectAsState().value) {
                     Text("JSON")
                 }
-                OutlinedButton(onClick = { vm.exportMd(lang)?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "text/markdown") } }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = { vm.export("md", lang) }, modifier = Modifier.weight(1f), enabled = !vm.exporting.collectAsState().value) {
                     Text("MD")
                 }
-                Button(onClick = { vm.exportZip()?.let { f -> com.vicinityprobe.report.ReportExporter.shareFile(context, f, "application/zip") } }, modifier = Modifier.weight(1f)) {
+                Button(onClick = { vm.export("zip") }, modifier = Modifier.weight(1f), enabled = !vm.exporting.collectAsState().value) {
                     Icon(Icons.Filled.Share, contentDescription = null)
                     Text(" RAW")
                 }

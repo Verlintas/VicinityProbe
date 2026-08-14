@@ -69,7 +69,7 @@ class MonitoringService : Service() {
         when (intent?.action) {
             ACTION_STOP -> stopMonitoring()
             else -> {
-                intervalMinutes = intent?.getLongExtra(EXTRA_INTERVAL, 10L) ?: 10L
+                intervalMinutes = (intent?.getLongExtra(EXTRA_INTERVAL, 10L) ?: 10L).coerceAtLeast(5L)
                 startMonitoring()
             }
         }

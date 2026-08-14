@@ -316,6 +316,15 @@ object ProbeCatalog {
                 keepRawSamples = false, sampleChannels = emptyList()))
             add(ProbeSpec("net_upnp_detail", "UPnP 设备深度解析|UPnP device detail", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
+            add(ProbeSpec("net_arp_table", "ARP 邻居表|ARP neighbor table", Category.SYSTEM, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList(),
+                notes = "读取 /proc/net/arp 邻居缓存|Reads the /proc/net/arp neighbor cache"))
+            add(ProbeSpec("net_doh", "DNS over HTTPS 探测|DNS-over-HTTPS probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList(),
+                notes = "经加密 DoH 通道解析域名并测延迟|Resolves domains via encrypted DoH and measures latency"))
+            add(ProbeSpec("net_quic", "QUIC 连通性探测|QUIC connectivity probe", Category.SECURITY, Measurand.IDENTIFIER, UnitDef.NONE, nominalRateHz = 0.0,
+                keepRawSamples = false, sampleChannels = emptyList(),
+                notes = "UDP 443 发 QUIC Initial,探测 QUIC 可达性|Sends QUIC Initial over UDP 443 to probe QUIC reachability"))
             add(ProbeSpec("audio_link_test", "音频链路测试|Audio link test", Category.AUDIO, Measurand.TIME_SPAN, UnitDef.MS, nominalRateHz = 0.0,
                 keepRawSamples = false, sampleChannels = emptyList()))
         }.map { spec ->
@@ -361,6 +370,8 @@ object ProbeCatalog {
                 "net_arp_spoof" to "ARP 监听属主动网络监测行为|ARP monitoring is active network activity",
                 "net_mdns" to "组播发现会暴露周边服务信息|Multicast discovery exposes nearby services",
                 "net_upnp_detail" to "拉取 UPnP 描述文档触及第三方设备|Fetching UPnP descriptions touches third-party devices",
+                "net_doh" to "DoH 探测会向外网发送加密查询|DoH probing sends encrypted queries to external resolvers",
+                "net_quic" to "QUIC 探测属主动网络测试行为|QUIC probing is active network testing",
                 "audio_link_test" to "播放测试音并录音,注意当地录音规定|Playback + recording — mind local recording laws",
             )
             risks[spec.id]?.let { note -> spec.copy(complianceRisk = true, riskNote = note) } ?: spec

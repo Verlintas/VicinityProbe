@@ -47,6 +47,10 @@ data class SpectrumResult(
     val dominantAmplitude: Double,
     val flatness: Double,               // 频谱平坦度(几何均值/算术均值,0~1)
     val bandEnergy: Map<String, Double> = emptyMap(),  // 频带能量占比(如 low/mid/high)
+    val topPeaks: List<Double> = emptyList(),          // 显著谱峰频率(Hz,前 5)
+    val fundamentalHz: Double? = null,                 // 基频(与主导峰重合时)
+    val thdPercent: Double? = null,                    // 总谐波失真(占基波 %)
+    val harmonicRichness: Double? = null,              // 谐波能量占比 0..1
 )
 
 /** 测量计划 */
@@ -108,6 +112,9 @@ data class VibrationSummary(
     val rmsMs2: Double? = null,                // 振动加速度 RMS
     val crestFactor: Double? = null,           // 峰值因子
     val vibrationLevel: String? = null,        // ISO 2631 近似等级(微弱/温和/剧烈)
+    val thdPercent: Double? = null,            // 振动谐波失真(机械故障诊断参考)
+    val periodic: Boolean? = null,             // 是否呈周期性(自相关检测)
+    val periodSeconds: Double? = null,         // 检测到的周期
 )
 
 @Serializable

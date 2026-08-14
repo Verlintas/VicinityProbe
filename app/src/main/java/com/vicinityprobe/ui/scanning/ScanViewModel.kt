@@ -34,6 +34,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,13 +58,19 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val controller = SessionController(app, ids, durationMs, mode)
         this.controller = controller
         job = viewModelScope.launch {
-            try {
-                val collectJob = viewModelScope.launch {
+            val collectJob = viewModelScope.launch {
+                try {
                     controller.stateFlow().collect { _ui.value = it }
+                } catch (_: kotlinx.coroutines.CancellationException) {
+                } catch (_: Exception) {
                 }
+            }
+            try {
                 val report = controller.run(File(app.filesDir, "reports"))
-                val analyzed = report.copy(analysis = AnalysisEngine.analyze(report))
-                val meta = history.save(analyzed)
+                val meta = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val analyzed = report.copy(analysis = AnalysisEngine.analyze(report))
+                    history.save(analyzed)
+                }
                 collectJob.cancel()
                 _ui.value = _ui.value?.copy(completedUnits = _ui.value?.totalUnits ?: 0)
                 _result.value = meta
@@ -71,6 +78,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 throw e
             } catch (e: Exception) {
                 _error.value = e.message
+            } finally {
+                collectJob.cancel()
             }
         }
     }

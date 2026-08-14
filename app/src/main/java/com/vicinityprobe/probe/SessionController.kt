@@ -32,6 +32,7 @@ import com.vicinityprobe.model.domain.ProbeSpec
 import com.vicinityprobe.model.domain.QualityLevel
 import com.vicinityprobe.model.domain.SessionContextInfo
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
@@ -88,7 +89,7 @@ class SessionController(
         val results = java.util.concurrent.ConcurrentHashMap<String, Measurement>()
 
         jobs = units.map { unit ->
-            launch {
+            launch(Dispatchers.Default) {
                 when (unit) {
                     is BatchSampler -> {
                         val list = try {
@@ -224,6 +225,9 @@ class SessionController(
         add("net_smb", SmbProbeSampler())
         add("net_dns_hijack", DnsHijackSampler())
         add("net_arp_spoof", ArpSpoofSampler())
+        add("net_arp_table", ArpTableSampler())
+        add("net_doh", DohSampler())
+        add("net_quic", QuicProbeSampler())
         add("net_mdns", MdnsSampler())
         add("net_upnp_detail", UpnpDetailSampler())
         add("proc_net_conn", ProcNetConnSampler())

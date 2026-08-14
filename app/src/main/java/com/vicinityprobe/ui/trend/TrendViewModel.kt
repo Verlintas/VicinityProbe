@@ -29,6 +29,7 @@ import com.vicinityprobe.report.HistoryManager
 import com.vicinityprobe.report.ReportMeta
 import com.vicinityprobe.service.MonitoringService
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -41,7 +42,7 @@ class TrendViewModel(application: Application) : AndroidViewModel(application) {
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch { _items.value = history.list() }
+        viewModelScope.launch { _items.value = withContext(kotlinx.coroutines.Dispatchers.IO) { history.list() } }
     }
 
     fun startMonitoring(intervalMinutes: Long) {
@@ -55,5 +56,31 @@ class TrendViewModel(application: Application) : AndroidViewModel(application) {
         val intent = Intent(getApplication(), MonitoringService::class.java)
             .setAction(MonitoringService.ACTION_STOP)
         getApplication<Application>().startService(intent)
+    }
+
+    /** 线性趋势推断结果 */
+    data class TrendInference(
+        val slopePerDay: Double,   // 每天变化量
+        val r2: Double,
+        val pValue: Double,
+        val stationary: Boolean,
+        val points: Int,
+    )
+
+    /** 对历史序列做最小二乘趋势推断(斜率/拟合优度/显著性) */
+    fun inferTrend(channel: (ReportMeta) -> Double): TrendInference? {
+        val sorted = _items.value.sortedBy { it.createdAt }
+        if (sorted.size < 3) return null
+        val samples = sorted.map(channel)
+        val hours = sorted.zipWithNext { a, b -> (b.createdAt - a.createdAt) / 3_600_000.0 }
+        val avgDtSec = (if (hours.isEmpty()) 0.0 else hours.average().coerceAtLeast(0.001)) * 3600.0
+        val fit = com.vicinityprobe.analysis.LinearTrend.fit(samples, avgDtSec) ?: return null
+        return TrendInference(
+            slopePerDay = fit.slopePerSecond * 86_400.0,
+            r2 = fit.r2,
+            pValue = fit.pValueApprox,
+            stationary = fit.stationary,
+            points = samples.size,
+        )
     }
 }

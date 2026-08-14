@@ -193,6 +193,7 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
         }
 
         var gravity = floatArrayOf(0f, 0f, 0f)
+        var lastAccel = floatArrayOf(0f, 0f, 0f)
         val thread = HandlerThread("sensor-sampling")
         thread.start()
         val handler = Handler(thread.looper)
@@ -204,6 +205,9 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
                 if (e.accuracy < st.worstAccuracy) st.worstAccuracy = e.accuracy
                 if (e.sensor.type == Sensor.TYPE_GRAVITY && e.values.size >= 3) {
                     gravity = e.values.copyOf()
+                }
+                if (e.sensor.type == Sensor.TYPE_ACCELEROMETER && e.values.size >= 3) {
+                    lastAccel = e.values.copyOf()
                 }
                 when (st.binding.spec.id) {
                     "sensor.step_counter" -> {
@@ -242,16 +246,12 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
                             st.recorders["z"]?.add(t, v[2])
                             val mag = sqrt(v[0].toDouble() * v[0] + v[1].toDouble() * v[1] + v[2].toDouble() * v[2])
                             st.recorders["magnitude"]?.add(t, mag.toFloat())
-                            // 指南针方位:重力 + 磁力融合
-                            if (gravity.size >= 3 && (gravity[0] != 0f || gravity[1] != 0f || gravity[2] != 0f)) {
-                                val rm = FloatArray(9)
-                                if (SensorManager.getRotationMatrix(rm, null, gravity, v)) {
-                                    val o = FloatArray(3)
-                                    SensorManager.getOrientation(rm, o)
-                                    var d = Math.toDegrees(o[0].toDouble())
-                                    if (d < 0) d += 360
-                                    st.headingDeg = d
-                                }
+                            // 指南针方位:倾斜补偿融合(加速度作姿态参考,不依赖 TYPE_GRAVITY)
+                            val tiltRef = if (gravity.size >= 3 && (gravity[0] != 0f || gravity[1] != 0f || gravity[2] != 0f)) gravity else lastAccel
+                            if (tiltRef.size >= 3 && (tiltRef[0] != 0f || tiltRef[1] != 0f || tiltRef[2] != 0f)) {
+                                com.vicinityprobe.analysis.tiltCompensatedHeading(
+                                    tiltRef[0], tiltRef[1], tiltRef[2], v[0], v[1], v[2],
+                                )?.let { st.headingDeg = it }
                             }
                         }
                     }
@@ -287,6 +287,8 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
         }
         manager.unregisterListener(listener)
         thread.quitSafely()
+        // join 保证回调线程终止前所有写入可见(happens-before),避免读到过期计数
+        try { thread.join(3000) } catch (_: Throwable) {}
 
         // 组装测量结果
         for ((sensor, st) in states) {

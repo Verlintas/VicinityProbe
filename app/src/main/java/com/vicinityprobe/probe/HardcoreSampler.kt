@@ -132,7 +132,8 @@ class DnsHijackSampler : Sampler {
             }
             queried += results.size
             val nonEmpty = results.values.filter { it.isNotEmpty() && !it.contains("CNAME") }
-            val sets = results.values.filter { it.isNotEmpty() }.toSet()
+            // 空结果(NXDOMAIN/超时)也要参与比对,否则会漏报"一个解析器有 A 记录、另一个 NXDOMAIN"的不一致
+            val sets = results.values.map { if (it.isEmpty()) listOf("<empty>") else it }.toSet()
             val verdict = when {
                 results.size < 2 -> "insufficient"
                 sets.size > 1 -> {

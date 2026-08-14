@@ -45,11 +45,15 @@ import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
@@ -104,6 +108,25 @@ fun HomeScreen(nav: NavController) {
                     Text("VicinityProbe", style = MaterialTheme.typography.titleLarge)
                     Text(t(L("探测所有传感器,生成周遭环境数据报告", "Probe every sensor & module, generate an environment report")),
                         style = MaterialTheme.typography.labelSmall)
+                }
+            }, actions = {
+                // 主题切换(循环:系统 → 浅色 → 深色)
+                var themeMode by remember {
+                    mutableStateOf(com.vicinityprobe.ui.theme.ThemePrefs.mode(context))
+                }
+                IconButton(onClick = {
+                    themeMode = when (themeMode) {
+                        com.vicinityprobe.ui.theme.ThemeMode.SYSTEM -> com.vicinityprobe.ui.theme.ThemeMode.LIGHT
+                        com.vicinityprobe.ui.theme.ThemeMode.LIGHT -> com.vicinityprobe.ui.theme.ThemeMode.DARK
+                        com.vicinityprobe.ui.theme.ThemeMode.DARK -> com.vicinityprobe.ui.theme.ThemeMode.SYSTEM
+                    }
+                    com.vicinityprobe.ui.theme.ThemePrefs.setMode(context, themeMode)
+                }) {
+                    when (themeMode) {
+                        com.vicinityprobe.ui.theme.ThemeMode.SYSTEM -> Icon(Icons.Filled.BrightnessAuto, contentDescription = "theme: system")
+                        com.vicinityprobe.ui.theme.ThemeMode.LIGHT -> Icon(Icons.Filled.LightMode, contentDescription = "theme: light")
+                        com.vicinityprobe.ui.theme.ThemeMode.DARK -> Icon(Icons.Filled.DarkMode, contentDescription = "theme: dark")
+                    }
                 }
             })
         },

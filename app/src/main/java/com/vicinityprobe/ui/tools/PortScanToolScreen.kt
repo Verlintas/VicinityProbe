@@ -210,6 +210,7 @@ private suspend fun scanAdvanced(
         (s..e).toList()
     }
     val total = ports.size
+    if (total == 0) return emptyList<PortScanResult>() to 0L
     val scanned = AtomicInteger(0)
     val found = java.util.concurrent.ConcurrentLinkedQueue<PortScanResult>()
     val threadCount = threads.coerceIn(1, 200)

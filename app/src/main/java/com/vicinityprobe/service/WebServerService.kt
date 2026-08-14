@@ -50,12 +50,14 @@ class WebServerService : Service() {
         private const val NOTIFICATION_ID = 4
         const val PORT = 8080
 
-        private var running = false
-        private var serverSocket: ServerSocket? = null
-        private var serverThread: Thread? = null
+        @Volatile private var running = false
+        @Volatile private var serverSocket: ServerSocket? = null
+        @Volatile private var serverThread: Thread? = null
 
         fun isRunning(): Boolean = running
         fun port(): Int = PORT
+
+        private const val MAX_CONNECTIONS = 32
 
         /** 局域网 IPv4 地址(供 UI 显示 URL) */
         fun localIp(): String? {
@@ -71,6 +73,9 @@ class WebServerService : Service() {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val connectionPool = java.util.concurrent.Executors.newFixedThreadPool(MAX_CONNECTIONS) { r ->
+        Thread(r).apply { isDaemon = true; name = "web-conn" }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -82,17 +87,18 @@ class WebServerService : Service() {
         return START_NOT_STICKY
     }
 
+    @Synchronized
     private fun startServer() {
         if (running) return
         createChannel()
         startForeground(NOTIFICATION_ID, buildNotification("starting…"))
-        running = true
         serverThread = Thread { serve() }.apply {
             isDaemon = true
             start()
         }
     }
 
+    @Synchronized
     private fun stopServer() {
         running = false
         try { serverSocket?.close() } catch (_: Throwable) {}
@@ -103,18 +109,44 @@ class WebServerService : Service() {
     }
 
     private fun serve() {
+        var socket: ServerSocket? = null
         try {
-            val socket = ServerSocket(PORT)
+            socket = ServerSocket(PORT)
             serverSocket = socket
+            running = true
             updateNotification("http://${localIp() ?: "?"}:$PORT")
             while (running) {
                 val client = try { socket.accept() } catch (_: Throwable) { null } ?: continue
                 client.soTimeout = 8000
-                Thread { handle(client) }.apply { isDaemon = true; start() }
+                connectionPool.execute { handle(client) }
             }
         } catch (_: Throwable) {
-            // server closed
+            // server closed or bind failed
+        } finally {
+            running = false
+            try { socket?.close() } catch (_: Throwable) {}
+            serverSocket = null
         }
+    }
+
+    private fun safeId(raw: String): String? {
+        val id = URLDecoder.decode(raw, "UTF-8")
+        return id.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }
+    }
+
+    /** 解析路径并在 reports 根目录内解析(防路径穿越) */
+    private fun resolveReportFile(rawPath: String, kind: String): File? {
+        val root = File(filesDir, "reports")
+        val (id, rel) = if (kind == "report") rawPath to "" else {
+            val idx = rawPath.indexOf('/')
+            if (idx <= 0) return null
+            rawPath.substring(0, idx) to URLDecoder.decode(rawPath.substring(idx + 1), "UTF-8")
+        }
+        val safe = safeId(id) ?: return null
+        val candidate = if (rel.isEmpty()) File(root, "$safe/report.json") else File(File(root, safe), rel)
+        val canonical = try { candidate.canonicalPath } catch (_: Throwable) { return null }
+        val rootCanonical = try { File(root, safe).canonicalPath } catch (_: Throwable) { return null }
+        return if (canonical.startsWith(rootCanonical)) candidate else null
     }
 
     private fun handle(client: Socket) {
@@ -139,22 +171,13 @@ class WebServerService : Service() {
                     method == "POST" && rawPath == "/api/scan" ->
                         handleScan(out, reader)
                     method == "GET" && rawPath.startsWith("/download/report/") -> {
-                        val id = rawPath.removePrefix("/download/report/")
-                        val f = File(filesDir, "reports/$id/report.json")
-                        if (f.exists()) respondFile(out, f, "application/json") else respond404(out)
+                        val f = resolveReportFile(rawPath.removePrefix("/download/report/"), "report")
+                        if (f != null && f.isFile) respondFile(out, f, "application/json") else respond404(out)
                     }
                     method == "GET" && rawPath.startsWith("/download/samples/") -> {
                         // /download/samples/<id>/<relative path>
-                        val rest = rawPath.removePrefix("/download/samples/")
-                        val idx = rest.indexOf('/')
-                        if (idx > 0) {
-                            val id = rest.substring(0, idx)
-                            val rel = URLDecoder.decode(rest.substring(idx + 1), "UTF-8")
-                            val f = File(File(filesDir, "reports/$id"), rel)
-                            if (f.exists() && f.isFile && f.path.startsWith(File(filesDir, "reports").path)) {
-                                respondFile(out, f, "text/csv")
-                            } else respond404(out)
-                        } else respond404(out)
+                        val f = resolveReportFile(rawPath.removePrefix("/download/samples/"), "samples")
+                        if (f != null && f.isFile) respondFile(out, f, "text/csv") else respond404(out)
                     }
                     method == "GET" && rawPath.startsWith("/download/pcap") -> {
                         val f = CaptureController.pcapPath()
@@ -180,7 +203,16 @@ class WebServerService : Service() {
             line = reader.readLine()
         }
         val body = if (contentLength > 0 && contentLength < 65536) {
-            CharArray(contentLength).let { reader.read(it); String(it) }
+            val sb = StringBuilder(contentLength)
+            val buf = CharArray(4096)
+            var total = 0
+            while (total < contentLength) {
+                val n = reader.read(buf, 0, minOf(buf.size, contentLength - total))
+                if (n < 0) break
+                sb.append(buf, 0, n)
+                total += n
+            }
+            sb.toString()
         } else ""
         val params = body.split("&").mapNotNull {
             val kv = it.split("=", limit = 2)
@@ -234,9 +266,11 @@ class WebServerService : Service() {
         val flows = s.flows.joinToString(",", prefix = "[", postfix = "]") { f ->
             """{"proto":"${f.proto}","client":"${f.clientIp}:${f.clientPort}","server":"${f.serverIp}:${f.serverPort}","sent":${f.sentBytes},"recv":${f.recvBytes},"state":"${f.state}"}"""
         }
-        val domains = s.topDomains.joinToString(",", prefix = "[", postfix = "]") { (d, c) -> """{"domain":"$d","count":$c}""" }
-        val http = s.httpRequests.joinToString(",", prefix = "[", postfix = "]") { "\"" + it.replace("\"", "'") + "\"" }
-        return """{"running":${s.running},"packets":${s.totalPackets},"bytes":${s.totalBytes},"tcp":${s.tcpPackets},"udp":${s.udpPackets},"icmp":${s.icmpPackets},"flows":$flows,"domains":$domains,"http":$http}"""
+        val domains = s.topDomains.joinToString(",", prefix = "[", postfix = "]") { (d, c) -> """{"domain":${jstr(d)},"count":$c}""" }
+        val http = s.httpRequests.joinToString(",", prefix = "[", postfix = "]") { jstr(it) }
+        val protos = s.protocols.entries.joinToString(",", prefix = "[", postfix = "]") { (p, c) -> """{"proto":${jstr(p)},"count":$c}""" }
+        val ja3s = s.tlsJa3.entries.sortedByDescending { it.value }.take(8).joinToString(",", prefix = "[", postfix = "]") { (f, c) -> """{"fingerprint":${jstr(f)},"count":$c}""" }
+        return """{"running":${s.running},"packets":${s.totalPackets},"bytes":${s.totalBytes},"tcp":${s.tcpPackets},"udp":${s.udpPackets},"icmp":${s.icmpPackets},"quic":${s.quicPackets},"flows":$flows,"domains":$domains,"http":$http,"protocols":$protos,"ja3":$ja3s}"""
             .toByteArray(StandardCharsets.UTF_8)
     }
 
@@ -248,12 +282,39 @@ class WebServerService : Service() {
     }
 
     private fun respondFile(out: java.io.OutputStream, f: File, mime: String) {
-        val body = f.readBytes()
-        respond(out, mime, body)
+        val len = f.length()
+        if (len > 64L * 1024 * 1024) {
+            respond(out, "text/plain", "file too large".toByteArray())
+            return
+        }
+        val head = "HTTP/1.1 200 OK\r\nContent-Type: $mime\r\nContent-Length: $len\r\nConnection: close\r\n\r\n"
+        out.write(head.toByteArray())
+        f.inputStream().use { it.copyTo(out, 64 * 1024) }
+        out.flush()
     }
 
     private fun respond404(out: java.io.OutputStream) {
         respond(out, "text/plain", "404 not found".toByteArray())
+    }
+
+    /** 严格的 JSON 字符串转义(防非法 JSON) */
+    private fun jstr(s: String): String {
+        val sb = StringBuilder(s.length + 16)
+        sb.append('"')
+        for (ch in s) {
+            when (ch) {
+                '"' -> sb.append("\\\"")
+                '\\' -> sb.append("\\\\")
+                '\n' -> sb.append("\\n")
+                '\r' -> sb.append("\\r")
+                '\t' -> sb.append("\\t")
+                '\b' -> sb.append("\\b")
+                '\u000C' -> sb.append("\\f")
+                else -> if (ch < ' ') sb.append("\\u%04x".format(ch.code)) else sb.append(ch)
+            }
+        }
+        sb.append('"')
+        return sb.toString()
     }
 
     private fun dashboardHtml(): String = """
@@ -314,7 +375,11 @@ async function loadCapture(){
   const s=await j('/api/capture');
   const el=document.getElementById('capture');
   if(!s.running){el.innerHTML='not running';return}
-  el.innerHTML='<b style="color:#86efac">RUNNING</b> · packets '+s.packets+' · bytes '+s.bytes+' · TCP '+s.tcp+' · UDP '+s.udp+' · ICMP '+s.icmp+'<br><a href="/download/pcap">download pcap</a>'+
+  const protos=(s.protocols||[]).map(p=>esc(p.proto)+' '+p.count).join(' · ');
+  const ja3=(s.ja3||[]).map(f=>f.fingerprint.split(',')[0]+'…×'+f.count).join(' · ');
+  el.innerHTML='<b style="color:#86efac">RUNNING</b> · packets '+s.packets+' · bytes '+s.bytes+' · TCP '+s.tcp+' · UDP '+s.udp+' · ICMP '+s.icmp+' · QUIC '+s.quic+'<br><a href="/download/pcap">download pcap</a>'+
+    '<div style="color:#8fb7c7;font-size:12px;margin-top:6px">protocols: '+(protos||'-')+'</div>'+
+    '<div style="color:#8fb7c7;font-size:12px">TLS fingerprints: '+(ja3||'-')+'</div>'+
     '<table><tr><th>flow</th><th>sent</th><th>recv</th><th>state</th></tr>'+
     s.flows.map(f=>'<tr><td>'+esc(f.client+' → '+f.server)+'</td><td>'+f.sent+'</td><td>'+f.recv+'</td><td>'+f.state+'</td></tr>').join('')+
     '</table>';

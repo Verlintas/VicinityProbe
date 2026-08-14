@@ -29,6 +29,7 @@ import com.vicinityprobe.report.CompareResult
 import com.vicinityprobe.report.HistoryManager
 import com.vicinityprobe.report.ReportMeta
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -44,7 +45,7 @@ class CompareViewModel(application: Application) : AndroidViewModel(application)
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch { _items.value = history.list() }
+        viewModelScope.launch { _items.value = withContext(kotlinx.coroutines.Dispatchers.IO) { history.list() } }
     }
 
     fun compare(idA: String?, idB: String?) {
@@ -53,9 +54,12 @@ class CompareViewModel(application: Application) : AndroidViewModel(application)
             return
         }
         viewModelScope.launch {
-            val a = history.load(idA) ?: return@launch
-            val b = history.load(idB) ?: return@launch
-            _result.value = CompareEngine.compare(a, b)
+            val result = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val a = history.load(idA) ?: return@withContext null
+                val b = history.load(idB) ?: return@withContext null
+                CompareEngine.compare(a, b)
+            }
+            _result.value = result
         }
     }
 }

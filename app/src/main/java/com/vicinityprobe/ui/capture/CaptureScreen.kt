@@ -136,6 +136,21 @@ fun CaptureScreen(nav: NavController) {
                         Text(t(L("总览", "Totals")), style = MaterialTheme.typography.titleSmall)
                         Text("packets: ${stats.totalPackets}  bytes: ${fmtBytes(stats.totalBytes)}", style = MaterialTheme.typography.bodySmall)
                         Text("TLS: ${stats.tlsVersions.entries.joinToString("  ") { "${it.key}×${it.value}" }}  QUIC: ${stats.quicPackets}", style = MaterialTheme.typography.bodySmall)
+                        if (stats.protocols.isNotEmpty()) {
+                            Text(
+                                t(L("应用协议", "Protocols")) + ": " + stats.protocols.entries.sortedByDescending { it.value }
+                                    .joinToString("  ") { "${it.key}×${it.value}" },
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        if (stats.tlsJa3.isNotEmpty()) {
+                            Text(
+                                t(L("TLS 指纹 TOP", "TLS fingerprints")) + ": " + stats.tlsJa3.entries.sortedByDescending { it.value }.take(5)
+                                    .joinToString("  ") { "${it.key.take(24)}…×${it.value}" },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         if (stats.topIps.isNotEmpty()) {
                             Text("IP TOP: " + stats.topIps.joinToString("  ") { "${it.first} ${fmtBytes(it.second)}" }, style = MaterialTheme.typography.bodySmall)
                         }
