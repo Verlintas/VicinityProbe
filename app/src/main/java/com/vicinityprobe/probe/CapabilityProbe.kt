@@ -105,13 +105,23 @@ object CapabilityProbe {
 
         val out = ArrayList<Capability>()
 
+        fun sensorPermission(id: String): String? = when (id) {
+            "sensor.step_counter", "sensor.step_detector", "sensor.significant_motion", "sensor.activity" ->
+                Manifest.permission.ACTIVITY_RECOGNITION
+            "sensor.heart_rate", "sensor.heart_beat", "sensor.offbody" ->
+                Manifest.permission.BODY_SENSORS
+            else -> null
+        }
+
         fun sensorCap(spec: ProbeSpec): Capability {
             val hasHardware = if (sensorStringMap.containsKey(spec.id)) {
                 sensorStrings.contains(sensorStringMap[spec.id])
             } else {
                 sensorTypes.contains(sensorIntMap[spec.id])
             }
-            val perm = spec.requiredPermissions.firstOrNull {
+            // 权限与采样器实际检查保持一致(catalog.requiredPermissions 为空,此处独立映射)
+            val required = sensorPermission(spec.id)
+            val perm = required?.takeIf {
                 ContextCompat.checkSelfPermission(ctx, it) != PackageManager.PERMISSION_GRANTED
             }
             val status = when {

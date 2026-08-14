@@ -170,12 +170,18 @@ class WebServerService : Service() {
     }
 
     private fun handleScan(out: java.io.OutputStream, reader: java.io.BufferedReader) {
-        // 读取 body(Content-Length 简单解析)
-        val lenHeader = generateSequence { reader.readLine() }.takeWhile { it.isNotEmpty() }.lastOrNull()
-        val contentLength = lenHeader?.let { h ->
-            h.substringAfter("Content-Length:", "").trim().toIntOrNull()
-        } ?: 0
-        val body = if (contentLength > 0) CharArray(contentLength).let { reader.read(it); String(it) } else ""
+        // 解析请求头,提取 Content-Length
+        var contentLength = 0
+        var line = reader.readLine()
+        while (line != null && line.isNotEmpty()) {
+            if (line.startsWith("Content-Length:", true)) {
+                contentLength = line.substringAfter(':').trim().toIntOrNull() ?: 0
+            }
+            line = reader.readLine()
+        }
+        val body = if (contentLength > 0 && contentLength < 65536) {
+            CharArray(contentLength).let { reader.read(it); String(it) }
+        } else ""
         val params = body.split("&").mapNotNull {
             val kv = it.split("=", limit = 2)
             if (kv.size == 2) kv[0] to URLDecoder.decode(kv[1], "UTF-8") else null

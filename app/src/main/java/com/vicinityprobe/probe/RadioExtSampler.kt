@@ -508,8 +508,9 @@ class NetworkStatsSampler : Sampler {
         val tcp = socketCount("/proc/net/tcp")
         val tcp6 = socketCount("/proc/net/tcp6")
         val udp = socketCount("/proc/net/udp")
-        attrs["tcp_connections"] = (if (tcp >= 0 && tcp6 >= 0) tcp + tcp6 else -1).toString()
-        attrs["udp_sockets"] = (if (udp >= 0) udp else -1).toString()
+        val tcpTotal = if (tcp >= 0 && tcp6 >= 0) tcp + tcp6 else -1
+        attrs["tcp_connections"] = if (tcpTotal >= 0) tcpTotal.toString() else "restricted"
+        attrs["udp_sockets"] = if (udp >= 0) udp.toString() else "restricted"
         return okMeasurement(spec, attrs,
             quality = QualityReport(QualityLevel.GOOD, QualityLevels.CODE_OK, "", sampleCount = 1))
     }

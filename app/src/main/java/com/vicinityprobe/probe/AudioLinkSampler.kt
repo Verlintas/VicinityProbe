@@ -114,8 +114,8 @@ class AudioLinkTestSampler : Sampler {
                 record.read(captureBuf, 0, totalSamples)
                 track.stop()
                 track.pause()
-                // 找播放后 100ms 起的峰值窗口
-                val searchStart = (SAMPLE_RATE / 10) + toneOffset
+                // 找播放起点后的峰值窗口(从 tone 起始处开始搜索)
+                val searchStart = toneOffset
                 var bestIdx = -1
                 var bestAmp = 0
                 for (i in searchStart until totalSamples) {

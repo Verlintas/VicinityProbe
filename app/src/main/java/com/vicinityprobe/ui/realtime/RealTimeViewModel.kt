@@ -103,6 +103,8 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     fun start(mode: WaveMode) {
         currentMode = mode
         stopInternal()
+        tickJob?.cancel()
+        tickJob = null
         if (mode == WaveMode.SPECTRUM) {
             startSpectrum()
         } else {

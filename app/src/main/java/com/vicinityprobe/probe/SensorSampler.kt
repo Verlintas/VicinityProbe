@@ -175,6 +175,7 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
             var heartReliability: String?,
             var worstAccuracy: Int,
             var nSamples: Int,
+            var headingDeg: Double = 0.0,      // 磁力计指南针方位(最近)
         )
         val states = HashMap<Int, SpecState>()
         bindList.forEach { (b, sensor) ->
@@ -232,6 +233,27 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
                     }
                     "sensor.proximity" -> {
                         if (e.values.isNotEmpty()) st.recorders["value"]?.add(t, e.values[0])
+                    }
+                    "sensor.magnetometer" -> {
+                        val v = e.values
+                        if (v.size >= 3) {
+                            st.recorders["x"]?.add(t, v[0])
+                            st.recorders["y"]?.add(t, v[1])
+                            st.recorders["z"]?.add(t, v[2])
+                            val mag = sqrt(v[0].toDouble() * v[0] + v[1].toDouble() * v[1] + v[2].toDouble() * v[2])
+                            st.recorders["magnitude"]?.add(t, mag.toFloat())
+                            // 指南针方位:重力 + 磁力融合
+                            if (gravity.size >= 3 && (gravity[0] != 0f || gravity[1] != 0f || gravity[2] != 0f)) {
+                                val rm = FloatArray(9)
+                                if (SensorManager.getRotationMatrix(rm, null, gravity, v)) {
+                                    val o = FloatArray(3)
+                                    SensorManager.getOrientation(rm, o)
+                                    var d = Math.toDegrees(o[0].toDouble())
+                                    if (d < 0) d += 360
+                                    st.headingDeg = d
+                                }
+                            }
+                        }
                     }
                     else -> {
                         val v = e.values
@@ -298,6 +320,19 @@ class SensorBatchSampler(override val specs: List<ProbeSpec>) : BatchSampler {
                     attrs["activity_distribution"] = st.activityCounts.entries.joinToString(",") { "${activityName(it.key)}:${it.value}" }
                 }
                 "sensor.heart_rate" -> st.heartReliability?.let { attrs["reliability"] = it }
+                "sensor.magnetometer" -> {
+                    attrs["heading_deg"] = String.format("%.1f", st.headingDeg)
+                    val avgMag = st.recorders["magnitude"]?.snapshot()?.map { it.second.toDouble() }?.average()
+                    if (avgMag != null) {
+                        attrs["radiation_level"] = when {
+                            avgMag < 5 -> "very-low"
+                            avgMag < 20 -> "low"
+                            avgMag < 50 -> "moderate"
+                            avgMag < 100 -> "elevated"
+                            else -> "high"
+                        }
+                    }
+                }
                 "sensor.proximity" -> {
                     val last = st.recorders["value"]?.snapshot()?.lastOrNull()?.second
                     if (last != null) attrs["covered"] = if (last < 4.0f) bil("遮挡", "Covered") else bil("未遮挡", "Clear")

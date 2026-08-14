@@ -326,6 +326,26 @@ object ProbeInfo {
             "用法:同时建立 16 条连接测成功率。用处:目标并发处理能力。原理:并发 TCP 连接计数。",
             "Usage: 16 simultaneous connections. Purpose: concurrency capacity. Principle: concurrent TCP count.",
         ),
+        "net_dns_hijack" to bil(
+            "用法:自写 DNS 客户端向 8.8.8.8/1.1.1.1/223.5.5.5 查询同一批域名并对比结果。用处:检测 DNS 劫持/分裂 DNS。原理:多解析源 A 记录集合一致性对比。",
+            "Usage: self-written DNS client queries multiple public resolvers for the same domains. Purpose: detect DNS hijacking/split-DNS. Principle: cross-resolver A-record consistency.",
+        ),
+        "net_arp_spoof" to bil(
+            "用法:会话内 2Hz 采样网关 MAC。用处:检测 ARP 欺骗或网络切换。原理:对比 /proc/net/arp 中网关 MAC 的历次采样。",
+            "Usage: samples the gateway MAC at 2 Hz. Purpose: ARP-spoofing / network-switch detection. Principle: gateway MAC deltas in /proc/net/arp.",
+        ),
+        "net_mdns" to bil(
+            "用法:组播查询 _services._dns-sd._udp.local。用处:枚举局域网 mDNS 服务(打印机/音箱/智能家居)。原理:PTR 记录解析,支持压缩指针。",
+            "Usage: multicast query of _services._dns-sd._udp.local. Purpose: enumerate LAN mDNS services. Principle: PTR record parsing with compression pointers.",
+        ),
+        "net_upnp_detail" to bil(
+            "用法:SSDP 发现后拉取各设备描述 XML。用处:识别设备类型/型号/序列号与服务。原理:解析 UPnP 描述文档字段。",
+            "Usage: fetches each discovered device's description XML. Purpose: device type/model/serial/services. Principle: UPnP description parsing.",
+        ),
+        "audio_link_test" to bil(
+            "用法:扬声器播放 1kHz 滴声,麦克风同步录音。用处:验证音频链路与回环延迟。原理:检测录音中播放音峰值位置,换算延迟。",
+            "Usage: speaker plays 1 kHz bursts while the mic records. Purpose: audio-link & loopback latency. Principle: peak-position detection in the capture.",
+        ),
         "audio_state" to bil(
             "用法:读取音量/铃声模式/输出设备。用处:音频环境配置。原理:AudioManager 查询。",
             "Usage: volumes/ringer/output devices. Purpose: audio config. Principle: AudioManager queries.",

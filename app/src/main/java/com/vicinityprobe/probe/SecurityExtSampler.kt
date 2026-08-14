@@ -183,7 +183,8 @@ class TlsVersionsSampler : Sampler {
 
     private fun tryTls(host: String, port: Int, version: String): Boolean {
         return try {
-            val ctx = javax.net.ssl.SSLContext.getInstance(version)
+            // Android 没有 "TLSv1"/"TLSv1.1" 协议提供者,统一用 TLS 上下文 + enabledProtocols
+            val ctx = javax.net.ssl.SSLContext.getInstance("TLS")
             ctx.init(null, arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
                 override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
                 override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
@@ -191,9 +192,11 @@ class TlsVersionsSampler : Sampler {
             }), null)
             val s = ctx.socketFactory.createSocket(host, port)
             s.soTimeout = 2000
-            (s as javax.net.ssl.SSLSocket).startHandshake()
-            val proto = s.session.protocol
-            s.close()
+            val ssl = s as javax.net.ssl.SSLSocket
+            ssl.enabledProtocols = arrayOf(version)
+            ssl.startHandshake()
+            val proto = ssl.session.protocol
+            ssl.close()
             proto.startsWith(version.replace("TLSv", "TLS"))
         } catch (_: Throwable) { false }
     }
