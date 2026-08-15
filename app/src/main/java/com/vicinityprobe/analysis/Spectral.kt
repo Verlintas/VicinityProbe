@@ -211,13 +211,14 @@ class SpectrumAnalyzer(private val fsHz: Double) {
  * 由于麦克风灵敏度未知,结果标记为未校准参考值。
  */
 object AWeighting {
-    /** A 计权衰减系数(用于在已知频谱上的加权) */
+    /** A 计权衰减系数(ANSI S1.4,含 +2.00 dB 归一化,1kHz = 0 dB) */
     fun weightDb(freqHz: Double): Double {
         val f = freqHz
         val f2 = f * f
-        val num = 12194.0.pow(2.0) * f2.pow(4.0)
+        val f4 = f2 * f2
+        val num = 12194.0.pow(2.0) * f4
         val den = (f2 + 20.6.pow(2.0)) * sqrt((f2 + 107.7.pow(2.0)) * (f2 + 737.9.pow(2.0))) * (f2 + 12194.0.pow(2.0))
-        return 20 * kotlin.math.log10(num / den)
+        return 20 * kotlin.math.log10(num / den) + 2.0
     }
 }
 
