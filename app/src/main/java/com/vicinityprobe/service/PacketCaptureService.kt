@@ -248,6 +248,8 @@ object CaptureController {
     private const val PCAP_MAX_BYTES = 256L * 1024 * 1024
     /** SNI/域名提取正则(预编译,防每包编译) */
     private val SNI_REGEX = Regex("[A-Za-z0-9]([A-Za-z0-9-.]{3,62}[A-Za-z0-9])")
+    /** HTTP 方法起始字节嗅探(预计算,防每包分配) */
+    private val HTTP_FIRST_BYTES = "GPHDOPT".toByteArray()
 
     fun reset() {
         synchronized(this) {
@@ -421,14 +423,25 @@ object CaptureController {
         }
         flows[key] = FlowEntry(proto, clientIp, clientPort, serverIp, serverPort, sent, recv, pkts, state, now)
 
-        // 应用层解析
+        // 应用层解析(先做廉价字节嗅探,命中才拷贝,减少每包 GC 分配)
         if (payloadLen > 0 && offset + dataOff < n) {
             val payloadStart = offset + dataOff
-            val payload = ByteArray(payloadLen)
-            System.arraycopy(buf, payloadStart, payload, 0, payloadLen)
+            val first = buf[payloadStart].toInt() and 0xFF
             when (serverPort) {
-                80, 8080 -> if (isClient) parseHttp(payload, clientIp)
-                443, 8443 -> if (isClient) parseSni(payload)
+                80, 8080 -> {
+                    if (isClient && first.toByte() in HTTP_FIRST_BYTES) {
+                        val payload = ByteArray(payloadLen)
+                        System.arraycopy(buf, payloadStart, payload, 0, payloadLen)
+                        parseHttp(payload, clientIp)
+                    }
+                }
+                443, 8443 -> {
+                    if (isClient && first == 0x16 && payloadLen >= 44 && payloadLen <= 4096) {
+                        val payload = ByteArray(payloadLen)
+                        System.arraycopy(buf, payloadStart, payload, 0, payloadLen)
+                        parseSni(payload)
+                    }
+                }
             }
         }
     }
@@ -449,8 +462,8 @@ object CaptureController {
             val first = buf[offset + 8].toInt() and 0xFF
             if (first and 0xC0 == 0xC0) quicPkts.incrementAndGet()
         }
-        // DNS 查询:客户端 → 53 端口请求方向
-        if (payloadLen > 0 && dstPort == 53) {
+        // DNS 查询:客户端 → 53 端口请求方向(QR 位=0)
+        if (payloadLen >= 12 && dstPort == 53 && (buf[offset + 8].toInt() and 0x80) == 0) {
             val payload = ByteArray(payloadLen)
             System.arraycopy(buf, offset + 8, payload, 0, payloadLen)
             parseDnsRequest(payload)
