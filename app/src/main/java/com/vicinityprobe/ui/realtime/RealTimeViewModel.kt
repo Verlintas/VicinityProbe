@@ -81,6 +81,17 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     private val _snapshot = MutableStateFlow(WaveSnapshot(WaveMode.ACCEL, emptyList(), emptyList(), emptyList()))
     val snapshot: StateFlow<WaveSnapshot> = _snapshot
 
+    private val _smoothing = MutableStateFlow(true)
+    val smoothing: StateFlow<Boolean> = _smoothing
+
+    /** 每个通道一个卡尔曼滤波器(发布间保持状态) */
+    private val kalmanMap = HashMap<String, com.vicinityprobe.analysis.Denoise.Kalman1D>()
+    private val kalmanLock = Any()
+
+    fun setSmoothing(on: Boolean) { _smoothing.value = on }
+
+    fun toggleSmoothing() { _smoothing.value = !_smoothing.value }
+
     private var sensorThread: HandlerThread? = null
     private var sensorHandler: Handler? = null
     private var audioThread: Thread? = null
@@ -106,6 +117,7 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         stopInternal()
         tickJob?.cancel()
         tickJob = null
+        synchronized(kalmanLock) { kalmanMap.clear() }
         if (mode == WaveMode.SPECTRUM) {
             startSpectrum()
         } else {
@@ -310,7 +322,16 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
                 val arr = synchronized(ringLock) { ring["ch$i"] } ?: FloatArray(0)
                 val startIdx = idxs["ch$i"] ?: 0
                 val n = minOf(count, arr.size)
-                FloatArray(n) { arr[(startIdx - n + it + arr.size) % arr.size] }
+                val raw = FloatArray(n) { arr[(startIdx - n + it + arr.size) % arr.size] }
+                if (_smoothing.value && n > 1) {
+                    val key = "${currentMode.id}/ch$i"
+                    val kf = synchronized(kalmanLock) {
+                        kalmanMap.getOrPut(key) { com.vicinityprobe.analysis.Denoise.Kalman1D(q = 1e-2, r = 0.05) }
+                    }
+                    FloatArray(n) { idx -> kf.update(raw[idx].toDouble()).toFloat() }
+                } else {
+                    raw
+                }
             }
         }
         val values = series.map { s -> if (s.isEmpty()) "—" else String.format("%.2f", s.last()) }

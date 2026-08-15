@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -86,7 +87,7 @@ fun RealTimeScreen(nav: NavController) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 波形源选择
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 WaveMode.entries.forEach { m ->
                     FilterChip(
                         selected = selected == m,
@@ -94,6 +95,13 @@ fun RealTimeScreen(nav: NavController) {
                         label = { Text(m.name) },
                     )
                 }
+                // 卡尔曼平滑开关
+                val smooth by vm.smoothing.collectAsStateWithLifecycle()
+                FilterChip(
+                    selected = smooth,
+                    onClick = { vm.toggleSmoothing() },
+                    label = { Text(t(L("平滑", "Smooth"))) },
+                )
             }
 
             // 实时数值卡
