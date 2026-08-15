@@ -19,7 +19,7 @@ Each probe entry `ProbeSpec` defines:
 | `keepRawSamples` | Whether raw samples are archived |
 | `requiredPermissions` | Required permissions |
 
-93 probes across 12 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY).
+96 probes across 12 categories (MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY).
 
 ## 2. Measurement pipeline
 
@@ -273,8 +273,11 @@ Acoustic metrics: LAeq = 10·log₁₀(Σ10^(Lᵢ/10)/n) (energy average). Spect
 
 | Probe | Notes |
 |---|---|
-| ⚠️ `net_dns_hijack` | Self-written DNS client queries 8.8.8.8 / 1.1.1.1 / 223.5.5.5 for 5 domains → cross-resolver consistency verdict (possible hijack / split-DNS) |
+| ⚠️ `net_dns_hijack` | Self-written DNS client queries 8.8.8.8 / 1.1.1.1 / 223.5.5.5 for 5 domains → cross-resolver consistency verdict (possible hijack / split-DNS; empty/NXDOMAIN results participate in the comparison) |
 | ⚠️ `net_arp_spoof` | Gateway MAC sampled at 2 Hz across the session → change detection (network switch or ARP spoofing) |
+| `net_arp_table` | Passive read of `/proc/net/arp` → neighbor IP/MAC/device/state, duplicate-MAC detection, gateway vendor identification (OUI) |
+| ⚠️ `net_doh` | Encrypted DNS-over-HTTPS resolution (Cloudflare / Google) → per-domain latency, IPs, TLS cert presence (loose chain trust to detect interception) |
+| ⚠️ `net_quic` | Hand-written QUIC Initial packet (UDP 443, long-header v1) → response version / SCID / reachability verdict |
 | ⚠️ `net_mdns` | Multicast PTR query `_services._dns-sd._udp.local` → service instance enumeration (compression-pointer aware) |
 | ⚠️ `net_upnp_detail` | SSDP discovery then fetches each device's description XML → deviceType / friendlyName / model / manufacturer / serial / services |
 | ⚠️ `audio_link_test` | Speaker plays 1 kHz tone bursts, mic captures loopback → speaker→mic latency, peak level, detection count |
@@ -331,6 +334,7 @@ Probes marked ⚠️ collect data that is regulated or considered personal data 
 | ⚠️ `net_banner` / `net_http_methods` / `net_http_security` / `net_tls_versions` / `net_http_paths` | Active security testing of third-party services — regulated in some countries |
 | ⚠️ `net_subnet_scan` | Full-subnet scanning is high-intensity probing, regulated in some countries |
 | ⚠️ `net_mqtt` / `net_tcp_concurrency` / `net_ntp` | Active probing of third-party services |
+| ⚠️ `net_doh` / `net_quic` | Encrypted external queries / active UDP testing against public services |
 
 These probes are flagged in-app (preflight & report) and in exported reports. Denying a permission or deselecting a probe in preflight excludes it from the session.
 

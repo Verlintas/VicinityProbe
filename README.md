@@ -6,21 +6,24 @@ Professional environmental measurement system: standardized data acquisition fro
 
 > **AI-generated code notice**: This codebase is substantially generated with the assistance of AI coding tools. Please review it before use in production or security-sensitive contexts.
 
-[中文版](README.zh-CN.md) · [Probe docs (EN)](docs/PROBES.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
+[中文版](README.zh-CN.md) · [Probe docs (EN)](docs/PROBES.md) · [Device test checklist](docs/TESTING.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
 
 ## Features
 
-- **Measurement catalog (93 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
+- **Measurement catalog (96 probes)**: every probe is a formal `ProbeSpec` entry defining measurand, SI unit, nominal sample rate, and range — covering motion, environmental quantities, magnetics, biosignals, acoustics, positioning & satellites, radio, electrical, system resources, device identity, and context events
 - **Capability preflight**: runtime enumeration of hardware support (supported / missing permission / no hardware), custom measurement plans
 - **Data quality gate**: every measurement carries EXCELLENT/GOOD/DEGRADED/FAILED level + sampling coverage + achieved rate + machine-readable reason code
 - **Professional statistics**: per-channel min/max/mean/stddev/RMS/CV + quantiles p1/p5/p25/p50/p75/p95/p99
+- **Statistical inference**: least-squares linear trend with R² and significance p-value, autocorrelation periodicity detection, skewness/kurtosis — wired into trend charts and vibration analysis
+- **Sensor fusion**: complementary filter (accel+gyro attitude), tilt-compensated heading, least-squares magnetometer hard-iron calibration (sphere fit)
+- **Sensor denoising**: rolling median filter (spike removal), exponential moving average, 1D Kalman filter — real-time smoothing toggle in the monitor
 - **Acoustics**: AudioRecord direct PCM capture → LAeq / Lpeak / L10 / L50 / L90
-- **Spectral analysis**: hand-written Radix-2 FFT (Hann window) → dominant frequency / spectral flatness / band energy
-- **Vibration analysis**: dominant frequency / RMS / crest factor / ISO 2631 approximate level
+- **Spectral analysis**: hand-written Radix-2 FFT (Hann window) → dominant frequency / spectral flatness / band energy, **spectral peaks** (parabolic-interpolated), **harmonic analysis with THD%** (2f–8f)
+- **Vibration analysis**: dominant frequency / RMS / crest factor / THD / periodicity / ISO 2631 approximate level
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
 - **Report export**: versioned schema JSON + Markdown + ZIP (report + raw samples)
 - **History & comparison**: report archive / rename / delete, side-by-side diff of statistics and attributes
-- **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, TLS SNI extraction, plaintext HTTP request parsing — exportable as **standard pcap** openable in Wireshark
+- **Root-free packet capture** (VPNService): protocol statistics (TCP/UDP/ICMP), connection flow table (5-tuple, bytes, state), DNS query domains, precise RFC 6066 SNI extraction, plaintext HTTP request parsing, **JA3-style TLS client fingerprinting**, **application-layer protocol identification** (DNS/DHCP/NTP/SSDP/mDNS/HTTP/HTTPS/SSH/SMTP…) — exportable as **standard pcap** openable in Wireshark
 - **LAN web console**: built-in HTTP server — desktop-browser dashboard with all reports, raw CSV & pcap downloads, live capture stats, and **remote scan triggering** (LAN only)
 - **Real-time monitor**: live oscilloscope for sensors (accel/gyro/mag/light/temp/pressure/noise), audio **spectrum waterfall** (FFT), threshold alerts via notification (noise/temp/light)
 - **Sensor calibration wizard**: guided magnetometer figure-8 (hard-iron offset), accelerometer gravity reference, gyroscope bias — outputs a shareable calibration report
@@ -29,11 +32,12 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Security & pentest assist**: LAN host discovery (OUI vendor ID), full-subnet scan, port scan + service recognition, banner grabbing, HTTP/TLS fingerprinting (web-stack/certificate analysis), HTTP method & security-header tests, TLS version probing, MQTT broker probe, web path enumeration, concurrency test, NTP time offset, SSDP/UPnP discovery, DNS testing, TCP reachability — configurable target (default: gateway)
 - **Packet sender tool**: custom UDP/TCP payloads in hex with response hex/ASCII echo — for protocol testing on authorized targets
 - **Capture enrichment**: TLS version distribution (from ClientHello) + QUIC (UDP/443) detection + top-IP traffic ranking
-- **Hardcore network detection**: **DNS hijack detection** (self-written DNS client, cross-resolver consistency), **ARP spoofing detection** (gateway MAC change monitoring), **mDNS service discovery**, **UPnP device deep-parse** (description XML: types/services/serial), **audio link loopback test** (speaker→mic latency)
+- **Hardcore network detection**: **DNS hijack detection** (self-written DNS client, cross-resolver consistency), **ARP spoofing detection** (gateway MAC change monitoring), **ARP neighbor table** (/proc/net/arp with duplicate-MAC & vendor analysis), **DNS-over-HTTPS probe** (encrypted resolution with latency/cert check), **QUIC connectivity probe** (hand-written QUIC Initial over UDP 443), **mDNS service discovery**, **UPnP device deep-parse** (description XML: types/services/serial), **audio link loopback test** (speaker→mic latency)
 - **More tools**: HTTP request tool (curl-style: method/headers/body/redirects, full response) + custom port-range scanner (start/end/concurrency/timeout)
 - **Deep system analysis**: connection table, kernel memory detail, per-core CPU usage, disk IO stats, boot/run statistics
 - **Calibration & electrical**: calibrated-vs-uncalibrated sensor bias analysis (mag hard-iron offset), battery drain rate & autonomy estimate, WiFi channel congestion analysis
-- **Continuous monitoring**: foreground service with quality trend charts
+- **Continuous monitoring**: foreground service with quality trend charts + **trend inference** (significant up/down/stationary verdict)
+- **Theming**: Material 3 dynamic color (Material You on Android 12+), system/light/dark toggle, interactive charts with touch crosshair
 - Bilingual UI (Chinese/English, follows system locale)
 
 ## Build
