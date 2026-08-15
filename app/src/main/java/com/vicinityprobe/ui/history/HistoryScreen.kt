@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,7 +100,7 @@ fun HistoryScreen(nav: NavController) {
                         headlineContent = { Text(meta.name, style = MaterialTheme.typography.titleSmall) },
                         supportingContent = {
                             Text(
-                                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(meta.createdAt)) +
+                                SimpleDateFormat("yyyy-MM-dd HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(meta.createdAt)) +
                                     " · ${meta.probeCount} probes" +
                                     " · EXC ${meta.excellentCount} / DEG ${meta.degradedCount} / FAIL ${meta.failedCount}" +
                                     if (meta.samplesKept) " · RAW" else "",

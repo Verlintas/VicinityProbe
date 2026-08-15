@@ -85,7 +85,7 @@ import android.os.Build
 @Composable
 fun HomeScreen(nav: NavController) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val lang = context.resources.configuration.locales[0].language
+    val lang = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language
     val t = { l: L -> Labels.tr(lang, l) }
 
     var fullMode by remember { mutableStateOf(true) }

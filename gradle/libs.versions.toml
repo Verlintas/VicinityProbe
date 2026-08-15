@@ -1,12 +1,12 @@
 [versions]
-agp = "8.13.0"
-kotlin = "2.2.0"
-coreKtx = "1.16.0"
-activityCompose = "1.10.1"
-composeBom = "2025.06.01"
-lifecycle = "2.9.1"
-navigationCompose = "2.9.0"
-kotlinxSerialization = "1.8.1"
+agp = "8.13.2"
+kotlin = "2.4.10"
+coreKtx = "1.18.0"
+activityCompose = "1.12.4"
+composeBom = "2026.06.01"
+lifecycle = "2.10.0"
+navigationCompose = "2.9.8"
+kotlinxSerialization = "1.11.0"
 junit = "4.13.2"
 
 [libraries]

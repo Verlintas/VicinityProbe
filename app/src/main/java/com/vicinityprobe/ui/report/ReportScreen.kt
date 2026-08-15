@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -144,7 +145,7 @@ fun ReportScreen(nav: NavController, reportId: String) {
 
 @Composable
 private fun PlanHeader(r: MeasurementReport, lang: String) {
-    val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(r.plan.createdAt))
+    val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(r.plan.createdAt))
     OutlinedCard {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("schema v${r.schemaVersion} · ${r.context.device}", style = MaterialTheme.typography.titleMedium)

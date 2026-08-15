@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -79,7 +80,7 @@ fun PacketSenderScreen(nav: NavController) {
     var intervalMs by remember { mutableStateOf("200") }
     var busy by remember { mutableStateOf(false) }
     var log by remember { mutableStateOf<List<String>>(emptyList()) }
-    val ts = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+    val ts = SimpleDateFormat("HH:mm:ss.SSS", androidx.compose.ui.platform.LocalConfiguration.current.locales[0])
 
     Scaffold(
         topBar = {
