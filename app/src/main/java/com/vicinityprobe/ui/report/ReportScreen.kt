@@ -53,6 +53,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +61,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -91,6 +95,7 @@ fun ReportScreen(nav: NavController, reportId: String) {
 
     LaunchedEffect(reportId) { vm.load(reportId) }
     val report by vm.report.collectAsStateWithLifecycle()
+    val loadError by vm.loadError.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -102,7 +107,12 @@ fun ReportScreen(nav: NavController, reportId: String) {
     ) { padding ->
         if (report == null) {
             Column(Modifier.padding(padding).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(t(L("加载中…", "Loading…")))
+                if (loadError) {
+                    Text(t(L("报告不存在或已损坏", "Report missing or corrupt")), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { nav.popBackStack() }) { Text(t(L("返回", "Back"))) }
+                } else {
+                    Text(t(L("加载中…", "Loading…")))
+                }
             }
             return@Scaffold
         }
@@ -168,7 +178,7 @@ private fun QualitySummary(r: MeasurementReport) {
             QualityLevel.DEGRADED to (counts[QualityLevel.DEGRADED]?.size ?: 0),
             QualityLevel.FAILED to (counts[QualityLevel.FAILED]?.size ?: 0),
         ).forEach { (level, count) ->
-            Card(Modifier.weight(1f)) {
+            OutlinedCard(Modifier.weight(1f)) {
                 Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     QualityPill(level)
                     Text(count.toString(), style = MaterialTheme.typography.titleLarge)
@@ -254,7 +264,7 @@ private fun MeasurementCard(m: Measurement, lang: String, reportId: String) {
                 Text(
                     "⚠️ " + trBilingual(m.spec.riskNote, lang),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFE65100),
+                    color = com.vicinityprobe.ui.components.WarningColor,
                 )
             }
             if (m.quality.detail.isNotBlank()) {
@@ -310,11 +320,20 @@ private fun tb(s: String, lang: String): String = trBilingual(s, lang)
 
 @Composable
 private fun SecurityAuditSection(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
-    val findings = remember(r.id) { com.vicinityprobe.analysis.SecurityAudit.audit(r) }
+    // 审计计算移到后台线程,避免大报告阻塞主线程
+    var findings by remember(r.id) { mutableStateOf<List<com.vicinityprobe.analysis.AuditFinding>>(emptyList()) }
+    var auditReady by remember(r.id) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(r.id) {
+        auditReady = false
+        findings = withContext(kotlinx.coroutines.Dispatchers.Default) { com.vicinityprobe.analysis.SecurityAudit.audit(r) }
+        auditReady = true
+    }
+    if (!auditReady) return
     if (findings.isEmpty()) return
     var expanded by remember(r.id) { mutableStateOf(false) }
     val counts = findings.groupBy { it.level }
-    Card(colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+    OutlinedCard(colors = androidx.compose.material3.CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(tb("安全审计|Security audit", lang), style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
@@ -337,7 +356,14 @@ private fun SecurityAuditSection(r: MeasurementReport, lang: String, onShare: (S
                         Text(f.detail.take(160), style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                TextButton(onClick = { onShare(com.vicinityprobe.analysis.SecurityAudit.markdown(r, findings, lang)) }) {
+                TextButton(onClick = {
+                    scope.launch {
+                        val md = withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            com.vicinityprobe.analysis.SecurityAudit.markdown(r, findings, lang)
+                        }
+                        onShare(md)
+                    }
+                }) {
                     Text(tb("分享审计报告|Share audit report", lang))
                 }
             } else {

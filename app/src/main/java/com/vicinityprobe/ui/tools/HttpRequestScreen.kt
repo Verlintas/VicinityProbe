@@ -103,7 +103,7 @@ fun HttpRequestScreen(nav: NavController) {
             Text(
                 "⚠️ " + t(L("仅限你有权访问的目标", "Authorized targets only")),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFFE65100),
+                color = com.vicinityprobe.ui.components.WarningColor,
             )
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

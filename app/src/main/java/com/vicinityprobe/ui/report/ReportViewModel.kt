@@ -27,12 +27,17 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     private val _report = MutableStateFlow<MeasurementReport?>(null)
     val report: StateFlow<MeasurementReport?> = _report
 
+    private val _loadError = MutableStateFlow(false)
+    val loadError: StateFlow<Boolean> = _loadError
+
     private val _exporting = MutableStateFlow(false)
     val exporting: StateFlow<Boolean> = _exporting
 
     fun load(id: String) {
         viewModelScope.launch {
+            _loadError.value = false
             _report.value = withContext(Dispatchers.IO) { history.load(id) }
+            _loadError.value = _report.value == null
         }
     }
 

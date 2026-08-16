@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -87,7 +88,7 @@ fun CaptureScreen(nav: NavController) {
                         Text(
                             "⚠️ " + t(L("抓包会采集明文流量与 DNS,属高风险合规项,仅限对你有权访问的网络使用", "Capture collects plaintext traffic & DNS — high compliance risk; only use on networks you are authorized to inspect")),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFE65100),
+                            color = com.vicinityprobe.ui.components.WarningColor,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -179,7 +180,7 @@ fun CaptureScreen(nav: NavController) {
 
             if (stats.httpRequests.isNotEmpty()) {
                 item { SectionTitle(t(L("HTTP 请求", "HTTP requests"))) }
-                items(stats.httpRequests, key = { it }) { req ->
+                itemsIndexed(stats.httpRequests) { idx, req ->
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Text(req, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(10.dp))
                     }
@@ -225,7 +226,7 @@ private fun FlowRow(f: FlowEntry, lang: String) {
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
                 )
-                Text(f.state, style = MaterialTheme.typography.labelSmall, color = if (f.state == "SYN" || f.state == "RST") Color(0xFFE65100) else MaterialTheme.colorScheme.primary)
+                Text(f.state, style = MaterialTheme.typography.labelSmall, color = if (f.state == "SYN" || f.state == "RST") com.vicinityprobe.ui.components.WarningColor else MaterialTheme.colorScheme.primary)
             }
             Text(
                 "↑ ${fmtBytes(f.sentBytes)}  ↓ ${fmtBytes(f.recvBytes)}  ${f.packets}pkt",
@@ -237,9 +238,9 @@ private fun FlowRow(f: FlowEntry, lang: String) {
 }
 
 private fun fmtBytes(b: Long): String = when {
-    b >= 1 shl 30 -> String.format("%.2f GB", b / 1e9)
-    b >= 1 shl 20 -> String.format("%.2f MB", b / 1e6)
-    b >= 1 shl 10 -> String.format("%.1f KB", b / 1e3)
+    b >= 1 shl 30 -> String.format("%.2f GiB", b / (1 shl 30).toDouble())
+    b >= 1 shl 20 -> String.format("%.2f MiB", b / (1 shl 20).toDouble())
+    b >= 1 shl 10 -> String.format("%.1f KiB", b / (1 shl 10).toDouble())
     else -> "$b B"
 }
 

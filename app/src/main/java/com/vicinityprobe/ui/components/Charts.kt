@@ -63,7 +63,11 @@ fun LineChart(
             Text("—", style = MaterialTheme.typography.bodyMedium)
             return@Column
         }
-        val values = points.map { it.v }
+        val values = points.map { it.v }.filter { it.isFinite() }
+        if (values.size < 2) {
+            Text("—", style = MaterialTheme.typography.bodyMedium)
+            return@Column
+        }
         val minV = values.min()
         val maxV = values.max()
         val span = (maxV - minV).let { if (it == 0.0) 1.0 else it }
@@ -90,14 +94,16 @@ fun LineChart(
             val pad = 8.dp.toPx()
             val path = Path()
             points.forEachIndexed { i, p ->
+                if (!p.v.isFinite()) return@forEachIndexed
                 val x = pad + (w - 2 * pad) * (i.toFloat() / (points.size - 1))
                 val y = pad + (h - 2 * pad) * (1f - ((p.v - minV) / span).toFloat())
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             drawPath(path, color = color, style = Stroke(width = 3f))
             drawLine(Color.Gray.copy(alpha = 0.4f), Offset(pad, h - pad), Offset(w - pad, h - pad), 1f)
-            drawContext.canvas.nativeCanvas.drawText(minV.toString(), 0f, h - 8.dp.toPx(), tickPaint)
-            drawContext.canvas.nativeCanvas.drawText(maxV.toString(), 0f, 30f, tickPaint)
+            // 刻度文字画在绘图区外的上下两侧,不压曲线
+            drawContext.canvas.nativeCanvas.drawText(minV.toString(), 0f, h + 14.dp.toPx(), tickPaint)
+            drawContext.canvas.nativeCanvas.drawText(maxV.toString(), 0f, 10.dp.toPx(), tickPaint)
             // 触摸高亮:十字线 + 数据点
             if (hoverIndex in points.indices) {
                 val p = points[hoverIndex]
@@ -111,7 +117,7 @@ fun LineChart(
         }
         Text(
             if (hoverIndex >= 0 && hoverIndex in points.indices)
-                "t=${points[hoverIndex].tMs}ms · v=${points[hoverIndex].v} $unit"
+                "x=${points[hoverIndex].tMs} · v=${points[hoverIndex].v} $unit"
             else "min $minV · max $maxV $unit",
             style = MaterialTheme.typography.labelSmall,
             color = if (hoverIndex >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -125,7 +131,7 @@ fun QualityPill(level: QualityLevel, modifier: Modifier = Modifier) {
     val colors: Triple<Color, Color, String> = when (level) {
         QualityLevel.EXCELLENT -> Triple(Color(0xFF1B5E20), Color(0xFFE8F5E9), "EXCELLENT")
         QualityLevel.GOOD -> Triple(Color(0xFF1565C0), Color(0xFFE3F2FD), "GOOD")
-        QualityLevel.DEGRADED -> Triple(Color(0xFFE65100), Color(0xFFFFF3E0), "DEGRADED")
+        QualityLevel.DEGRADED -> Triple(com.vicinityprobe.ui.components.WarningColor, Color(0xFFFFF3E0), "DEGRADED")
         QualityLevel.FAILED -> Triple(Color(0xFFB71C1C), Color(0xFFFFEBEE), "FAILED")
     }
     val (bg, fg, label) = colors

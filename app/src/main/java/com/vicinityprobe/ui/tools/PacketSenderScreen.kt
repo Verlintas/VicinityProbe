@@ -100,7 +100,7 @@ fun PacketSenderScreen(nav: NavController) {
             Text(
                 "⚠️ " + t(L("发送自定义数据包属主动网络行为,仅限你有权访问的目标", "Sending custom packets is active network activity — authorized targets only")),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFFE65100),
+                color = com.vicinityprobe.ui.components.WarningColor,
             )
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

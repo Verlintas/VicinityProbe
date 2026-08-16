@@ -39,6 +39,9 @@ class TrendViewModel(application: Application) : AndroidViewModel(application) {
     private val _items = MutableStateFlow<List<ReportMeta>>(emptyList())
     val items: StateFlow<List<ReportMeta>> = _items
 
+    private val _monitoring = MutableStateFlow(false)
+    val monitoring: StateFlow<Boolean> = _monitoring
+
     init { refresh() }
 
     fun refresh() {
@@ -50,12 +53,14 @@ class TrendViewModel(application: Application) : AndroidViewModel(application) {
             .setAction(MonitoringService.ACTION_START)
             .putExtra(MonitoringService.EXTRA_INTERVAL, intervalMinutes)
         getApplication<Application>().startForegroundService(intent)
+        _monitoring.value = true
     }
 
     fun stopMonitoring() {
         val intent = Intent(getApplication(), MonitoringService::class.java)
             .setAction(MonitoringService.ACTION_STOP)
         getApplication<Application>().startService(intent)
+        _monitoring.value = false
     }
 
     /** 线性趋势推断结果 */

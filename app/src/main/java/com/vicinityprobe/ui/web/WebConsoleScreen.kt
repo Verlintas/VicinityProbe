@@ -58,11 +58,12 @@ fun WebConsoleScreen(nav: NavController) {
     val vm: WebConsoleViewModel = viewModel()
 
     var running by remember { mutableStateOf(vm.isRunning()) }
-    val ip = remember { WebServerService.localIp() }
+    var ip by remember { mutableStateOf(WebServerService.localIp()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             running = WebServerService.isRunning()
+            if (running) ip = WebServerService.localIp()   // 启动后 WiFi 地址可能才就绪
             delay(1000)
         }
     }
@@ -88,7 +89,7 @@ fun WebConsoleScreen(nav: NavController) {
                     Text(
                         "⚠️ " + t(L("仅限可信局域网使用,不要暴露到公网", "LAN only — never expose to the public internet")),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFE65100),
+                        color = com.vicinityprobe.ui.components.WarningColor,
                     )
                     if (running) {
                         val url = "http://${ip ?: "?"}:${WebServerService.port()}"

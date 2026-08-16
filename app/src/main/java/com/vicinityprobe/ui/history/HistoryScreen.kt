@@ -127,7 +127,10 @@ fun HistoryScreen(nav: NavController) {
                 OutlinedTextField(value = newName, onValueChange = { newName = it }, singleLine = true)
             },
             confirmButton = {
-                TextButton(onClick = { vm.rename(meta.id, newName); renameTarget = null }) { Text(t(L("确定", "OK"))) }
+                TextButton(
+                    onClick = { vm.rename(meta.id, newName); renameTarget = null },
+                    enabled = newName.isNotBlank(),
+                ) { Text(t(L("确定", "OK"))) }
             },
             dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(t(L("取消", "Cancel"))) } },
         )

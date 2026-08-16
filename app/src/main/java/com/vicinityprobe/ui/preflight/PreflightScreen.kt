@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,20 +75,22 @@ fun PreflightScreen(nav: NavController) {
     val lang = langOf(context)
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
 
-    val caps = remember { CapabilityProbe.enumerate(context) }
-    // 默认全部不勾选,由用户自己挑
+    var caps by remember { mutableStateOf(CapabilityProbe.enumerate(context)) }
+    // 默认全部不勾选,由用户自己挑(取消勾选即移除 key,计数才准确)
     val selected = remember { mutableStateMapOf<String, Boolean>() }
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var infoTarget by remember { mutableStateOf<Capability?>(null) }
-    var durationMs by remember { mutableStateOf(10_000L) }
+    var durationMs by rememberSaveable { mutableStateOf(10_000L) }
     val durations = listOf(5_000L to "5s", 10_000L to "10s", 30_000L to "30s", 60_000L to "60s")
 
+    // 授权返回后重新枚举能力,卡片状态即时刷新
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { }
+    ) { caps = CapabilityProbe.enumerate(context) }
 
     val currentCategory = categoryOrder[selectedTab.coerceIn(0, categoryOrder.size - 1)]
     val visibleCaps = caps.filter { it.spec.category == currentCategory }
+    val selectedIds = selected.filterValues { it }.keys
 
     Scaffold(
         topBar = {
@@ -110,15 +113,15 @@ fun PreflightScreen(nav: NavController) {
                     }
                     TextButton(
                         onClick = {
-                            val ids = selected.filterValues { it }.keys.toList()
+                            val ids = selectedIds.toList()
                             nav.navigate(Routes.scan(ids, "SELECTED", durationMs))
                         },
-                        enabled = selected.isNotEmpty(),
+                        enabled = selectedIds.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                     ) {
                         Text(
                             t(L("开始测量", "Start measurement")) +
-                                if (selected.isNotEmpty()) " (${selected.size})" else " — " + t(L("先勾选要测的项目", "select probes first")),
+                                if (selectedIds.isNotEmpty()) " (${selectedIds.size})" else " — " + t(L("先勾选要测的项目", "select probes first")),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
@@ -131,7 +134,7 @@ fun PreflightScreen(nav: NavController) {
             Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())) {
                 categoryOrder.forEachIndexed { i, cat ->
                     val count = caps.count { it.spec.category == cat }
-                    val selectedInCat = selected.keys.count { k ->
+                    val selectedInCat = selectedIds.count { k ->
                         caps.firstOrNull { it.probeId == k }?.spec?.category == cat
                     }
                     Surface(
@@ -151,7 +154,7 @@ fun PreflightScreen(nav: NavController) {
 
             Text(
                 t(L("本设备可探测", "This device supports")) + ": ${CapabilityProbe.supportedCount(caps)}/${caps.size}" +
-                    " · " + t(L("已选", "selected")) + ": ${selected.size}",
+                    " · " + t(L("已选", "selected")) + ": ${selectedIds.size}",
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
@@ -169,7 +172,7 @@ fun PreflightScreen(nav: NavController) {
                         cap = cap,
                         checked = selected[cap.probeId] ?: false,
                         lang = lang,
-                        onChecked = { v -> selected[cap.probeId] = v },
+                        onChecked = { v -> if (v) selected[cap.probeId] = true else selected.remove(cap.probeId) },
                         onInfo = { infoTarget = cap },
                         onGrant = { permissionLauncher.launch(it) },
                     )
@@ -191,7 +194,7 @@ fun PreflightScreen(nav: NavController) {
                         Text(
                             "⚠️ " + trBilingual(cap.spec.riskNote, lang),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFE65100),
+                            color = com.vicinityprobe.ui.components.WarningColor,
                         )
                     }
                     Text(
@@ -224,7 +227,7 @@ private fun ProbeCard(
         CapabilityStatus.SUPPORTED -> Color(0xFF1B5E20)
         CapabilityStatus.PERMISSION_MISSING -> MaterialTheme.colorScheme.error
         CapabilityStatus.NO_HARDWARE -> Color.Gray
-        CapabilityStatus.FEATURE_OFF -> Color(0xFFE65100)
+        CapabilityStatus.FEATURE_OFF -> com.vicinityprobe.ui.components.WarningColor
     }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -288,7 +291,7 @@ private fun ProbeCard(
                 )
                 Box(Modifier.weight(1f)) {}
                 if (cap.spec.complianceRisk) {
-                    Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Filled.Warning, contentDescription = null, tint = com.vicinityprobe.ui.components.WarningColor, modifier = Modifier.size(14.dp))
                 }
             }
         }

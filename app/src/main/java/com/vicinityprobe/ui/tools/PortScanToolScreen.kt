@@ -103,7 +103,7 @@ fun PortScanToolScreen(nav: NavController) {
             Text(
                 "⚠️ " + t(L("端口扫描属主动网络探测,仅限你有权访问的目标", "Port scanning is active probing — authorized targets only")),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFFE65100),
+                color = com.vicinityprobe.ui.components.WarningColor,
             )
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -203,11 +203,11 @@ private suspend fun scanAdvanced(
     cancel: AtomicBoolean, startTime: Long, onProgress: (Float) -> Unit,
 ): Pair<List<PortScanResult>, Long> {
     val ports = if (startText.contains(",")) {
-        startText.split(",").mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..65535 }
+        startText.split(",").mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..65535 }.distinct()
     } else {
         val s = startText.toIntOrNull() ?: 1
         val e = endText.toIntOrNull() ?: 1024
-        (s..e).toList()
+        if (e < s) emptyList() else (s..e).toList()
     }
     val total = ports.size
     if (total == 0) return emptyList<PortScanResult>() to 0L

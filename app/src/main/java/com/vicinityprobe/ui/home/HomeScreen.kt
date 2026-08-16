@@ -65,6 +65,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -88,17 +90,21 @@ fun HomeScreen(nav: NavController) {
     val lang = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language
     val t = { l: L -> Labels.tr(lang, l) }
 
-    var fullMode by remember { mutableStateOf(true) }
-    var durationMs by remember { mutableStateOf(10_000L) }
+    var fullMode by rememberSaveable { mutableStateOf(true) }
+    var durationMs by rememberSaveable { mutableStateOf(10_000L) }
     val durations = listOf(5_000L to "5s", 10_000L to "10s", 30_000L to "30s", 60_000L to "60s")
     var targetHost by remember { mutableStateOf(com.vicinityprobe.probe.ScanTargetConfig.target(context) ?: "") }
 
+    // 授权返回后刷新权限状态,文案即时更新
+    var permTick by remember { mutableStateOf(0) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { }
+    ) { permTick++ }
 
-    val allGranted = Perms.runtime.all {
-        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    val allGranted = remember(permTick) {
+        Perms.runtime.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
     }
 
     Scaffold(
@@ -107,22 +113,21 @@ fun HomeScreen(nav: NavController) {
                 Column {
                     Text("VicinityProbe", style = MaterialTheme.typography.titleLarge)
                     Text(t(L("探测所有传感器,生成周遭环境数据报告", "Probe every sensor & module, generate an environment report")),
-                        style = MaterialTheme.typography.labelSmall)
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }, actions = {
-                // 主题切换(循环:系统 → 浅色 → 深色)
-                var themeMode by remember {
-                    mutableStateOf(com.vicinityprobe.ui.theme.ThemePrefs.mode(context))
-                }
+                // 主题切换(循环:系统 → 浅色 → 深色),全局可观测,即时生效
                 IconButton(onClick = {
-                    themeMode = when (themeMode) {
+                    val next = when (com.vicinityprobe.ui.theme.ThemeState.mode) {
                         com.vicinityprobe.ui.theme.ThemeMode.SYSTEM -> com.vicinityprobe.ui.theme.ThemeMode.LIGHT
                         com.vicinityprobe.ui.theme.ThemeMode.LIGHT -> com.vicinityprobe.ui.theme.ThemeMode.DARK
                         com.vicinityprobe.ui.theme.ThemeMode.DARK -> com.vicinityprobe.ui.theme.ThemeMode.SYSTEM
                     }
-                    com.vicinityprobe.ui.theme.ThemePrefs.setMode(context, themeMode)
+                    com.vicinityprobe.ui.theme.ThemeState.setMode(context, next)
                 }) {
-                    when (themeMode) {
+                    when (com.vicinityprobe.ui.theme.ThemeState.mode) {
                         com.vicinityprobe.ui.theme.ThemeMode.SYSTEM -> Icon(Icons.Filled.BrightnessAuto, contentDescription = "theme: system")
                         com.vicinityprobe.ui.theme.ThemeMode.LIGHT -> Icon(Icons.Filled.LightMode, contentDescription = "theme: light")
                         com.vicinityprobe.ui.theme.ThemeMode.DARK -> Icon(Icons.Filled.DarkMode, contentDescription = "theme: dark")
@@ -188,14 +193,17 @@ fun HomeScreen(nav: NavController) {
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = targetHost,
-                        onValueChange = {
-                            targetHost = it
-                            com.vicinityprobe.probe.ScanTargetConfig.setTarget(context, it)
-                        },
+                        // 输入不落盘,失焦/离开页面时才保存,避免逐字符写 SharedPreferences
+                        onValueChange = { targetHost = it },
                         singleLine = true,
                         placeholder = { Text(t(L("默认网关", "default gateway")) + " e.g. 192.168.1.1") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { if (!it.isFocused) com.vicinityprobe.probe.ScanTargetConfig.setTarget(context, targetHost.trim()) },
                     )
+                    androidx.compose.runtime.DisposableEffect(Unit) {
+                        onDispose { com.vicinityprobe.probe.ScanTargetConfig.setTarget(context, targetHost.trim()) }
+                    }
                 }
             }
 
@@ -210,7 +218,9 @@ fun HomeScreen(nav: NavController) {
                         )
                     }
                     val caps = remember { CapabilityProbe.enumerate(context) }
-                    val granted = Perms.runtime.count { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+                    val granted = remember(permTick) {
+                        Perms.runtime.count { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+                    }
                     Text("${granted}/${Perms.runtime.size} ${t(L("项权限已授权", "permissions granted"))}", style = MaterialTheme.typography.bodyMedium)
                     Text(t(L("本设备支持", "This device supports")) + ": ${CapabilityProbe.supportedCount(caps)}/${caps.size} ${t(L("项探测", "probes"))}", style = MaterialTheme.typography.bodyMedium)
                     Button(onClick = { permissionLauncher.launch(Perms.runtime.toTypedArray()) }) {
@@ -247,6 +257,8 @@ fun HomeScreen(nav: NavController) {
                         Text(t(L("连续监测", "Monitoring")))
                     }
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedCard(onClick = { nav.navigate(Routes.COMPARE) }, modifier = Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.CompareArrows, contentDescription = null)
@@ -273,6 +285,8 @@ fun HomeScreen(nav: NavController) {
                         Text(t(L("传感器标定", "Calibrate")))
                     }
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedCard(onClick = { nav.navigate(Routes.WEB) }, modifier = Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Language, contentDescription = null)
@@ -285,6 +299,8 @@ fun HomeScreen(nav: NavController) {
                         Text(t(L("数据包发送", "Packet sender")))
                     }
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedCard(onClick = { nav.navigate(Routes.HTTPTOOL) }, modifier = Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Http, contentDescription = null)

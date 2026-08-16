@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -109,8 +110,8 @@ fun TrendScreen(nav: NavController) {
     val vm: TrendViewModel = viewModel()
     val items by vm.items.collectAsStateWithLifecycle()
 
-    var interval by remember { mutableStateOf(10L) }
-    var monitoring by remember { mutableStateOf(false) }
+    var interval by rememberSaveable { mutableStateOf(10L) }
+    val monitoring by vm.monitoring.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { vm.refresh() }
 
@@ -138,17 +139,11 @@ fun TrendScreen(nav: NavController) {
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
-                                onClick = {
-                                    vm.startMonitoring(interval)
-                                    monitoring = true
-                                },
+                                onClick = { vm.startMonitoring(interval) },
                                 enabled = !monitoring,
                             ) { Text(t(L("开始监测", "Start monitoring"))) }
                             OutlinedButton(
-                                onClick = {
-                                    vm.stopMonitoring()
-                                    monitoring = false
-                                },
+                                onClick = { vm.stopMonitoring() },
                                 enabled = monitoring,
                             ) { Text(t(L("停止", "Stop"))) }
                         }
@@ -158,12 +153,17 @@ fun TrendScreen(nav: NavController) {
             if (items.size >= 2) {
                 item {
                     Text(t(L("EXCELLENT 质量探测项趋势", "EXCELLENT quality probes trend")), style = MaterialTheme.typography.titleSmall)
-                    val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPt(i.toLong(), m.excellentCount.toDouble()) }
+                    // x 轴用相对时间(小时),间隔不均时曲线不失真
+                    val sorted = items.sortedBy { it.createdAt }
+                    val t0 = sorted.first().createdAt
+                    val pts = sorted.map { SeriesPt(((it.createdAt - t0) / 3_600_000.0).toLong(), it.excellentCount.toDouble()) }
                     LineChart(pts, t(L("EXCELLENT 项数", "EXCELLENT count")), "")
                 }
                 item {
                     Text(t(L("数据质量等级趋势", "Quality level trend")), style = MaterialTheme.typography.titleSmall)
-                    val pts = items.sortedBy { it.createdAt }.mapIndexed { i, m -> SeriesPt(i.toLong(), m.okCount.toDouble()) }
+                    val sorted = items.sortedBy { it.createdAt }
+                    val t0 = sorted.first().createdAt
+                    val pts = sorted.map { SeriesPt(((it.createdAt - t0) / 3_600_000.0).toLong(), it.okCount.toDouble()) }
                     LineChart(pts, t(L("OK 项数", "OK count")), "")
                 }
                 item {

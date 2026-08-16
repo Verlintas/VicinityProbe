@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -94,7 +95,7 @@ fun CalibrationScreen(nav: NavController) {
             when (st.step) {
                 CalibStep.MAG -> {
                     Text(t(L("手持手机画 8 字,覆盖所有姿态(约 20 秒)", "Move the phone in a figure-8 covering all orientations (~20 s)")), style = MaterialTheme.typography.bodyMedium)
-                    st.error?.let { Text(t(L("传感器不可用,无法标定", "Sensor unavailable")), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+                    st.error?.let { ErrorRow(it, t, vm::skipStep) }
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             KeyValueRow(t(L("当前磁场幅值", "Current magnitude")), st.liveValue, primary = true)
@@ -105,6 +106,7 @@ fun CalibrationScreen(nav: NavController) {
                 }
                 CalibStep.ACCEL -> {
                     Text(t(L("将手机静置在水平桌面(约 8 秒)", "Rest the phone flat on a table (~8 s)")), style = MaterialTheme.typography.bodyMedium)
+                    st.error?.let { ErrorRow(it, t, vm::skipStep) }
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             KeyValueRow(t(L("当前重力幅值", "Current gravity")), st.liveValue, primary = true)
@@ -115,6 +117,7 @@ fun CalibrationScreen(nav: NavController) {
                 }
                 CalibStep.GYRO -> {
                     Text(t(L("保持手机完全静止(约 8 秒)", "Keep the phone perfectly still (~8 s)")), style = MaterialTheme.typography.bodyMedium)
+                    st.error?.let { ErrorRow(it, t, vm::skipStep) }
                     OutlinedCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             KeyValueRow(t(L("当前角速度 x,y,z", "Current rate x,y,z")), st.liveValue, primary = true)
@@ -166,6 +169,18 @@ fun CalibrationScreen(nav: NavController) {
 
             if (st.step != CalibStep.DONE) {
                 CircularProgressIndicator(modifier = Modifier.height(48.dp).padding(vertical = 4.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorRow(error: String, t: (L) -> String, onSkip: () -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = onSkip, modifier = Modifier.height(32.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)) {
+                Text(t(L("跳过此步骤", "Skip this step")), style = MaterialTheme.typography.labelMedium)
             }
         }
     }

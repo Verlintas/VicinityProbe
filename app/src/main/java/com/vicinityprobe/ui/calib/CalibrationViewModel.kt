@@ -62,12 +62,32 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
     private val accelSamples = ArrayList<FloatArray>()
     private val gyroSamples = ArrayList<FloatArray>()
 
+    /** 传感器回调线程写入,定时器读取(10Hz 发布) */
+    @Volatile private var latestSamples = 0
+    @Volatile private var latestLive = "—"
+
     fun start() {
         val sm = SensorManagerHolder.manager ?: return
         currentStep = CalibStep.MAG
         magSamples.clear(); accelSamples.clear(); gyroSamples.clear()
         _state.value = CalibResult()
         startStep(sm, CalibStep.MAG, 20_000)
+    }
+
+    /** 传感器缺失时跳过当前步骤,继续后续步骤 */
+    fun skipStep() {
+        when (currentStep) {
+            CalibStep.MAG -> advanceTo(CalibStep.ACCEL, 8_000)
+            CalibStep.ACCEL -> advanceTo(CalibStep.GYRO, 8_000)
+            CalibStep.GYRO -> _state.value = _state.value.copy(step = CalibStep.DONE, complete = true)
+            CalibStep.DONE -> {}
+        }
+    }
+
+    private fun advanceTo(next: CalibStep, durationMs: Long) {
+        val sm = SensorManagerHolder.manager ?: return
+        currentStep = next
+        startStep(sm, next, durationMs)
     }
 
     private fun startStep(sm: SensorManager, step: CalibStep, durationMs: Long) {
@@ -96,21 +116,24 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
         handler = Handler(thread.looper)
         listener = object : SensorEventListener {
             override fun onSensorChanged(e: SensorEvent) {
+                // 只累积样本,StateFlow 由 10Hz 定时器发布,避免 200Hz 全屏重组
                 when (step) {
                     CalibStep.MAG -> {
                         magSamples.add(floatArrayOf(e.values[0], e.values[1], e.values[2]))
                         val mag = sqrt(e.values[0] * e.values[0] + e.values[1] * e.values[1] + e.values[2] * e.values[2])
-                        _state.value = _state.value.copy(samples = magSamples.size, liveValue = String.format("%.1f µT", mag))
+                        latestSamples = magSamples.size
+                        latestLive = String.format("%.1f µT", mag)
                     }
                     CalibStep.ACCEL -> {
                         accelSamples.add(floatArrayOf(e.values[0], e.values[1], e.values[2]))
                         val mag = sqrt(e.values[0] * e.values[0] + e.values[1] * e.values[1] + e.values[2] * e.values[2])
-                        _state.value = _state.value.copy(samples = accelSamples.size, liveValue = String.format("%.3f m/s²", mag))
+                        latestSamples = accelSamples.size
+                        latestLive = String.format("%.3f m/s²", mag)
                     }
                     CalibStep.GYRO -> {
                         gyroSamples.add(floatArrayOf(e.values[0], e.values[1], e.values[2]))
-                        _state.value = _state.value.copy(samples = gyroSamples.size,
-                            liveValue = String.format("%.4f, %.4f, %.4f rad/s", e.values[0], e.values[1], e.values[2]))
+                        latestSamples = gyroSamples.size
+                        latestLive = String.format("%.4f, %.4f, %.4f rad/s", e.values[0], e.values[1], e.values[2])
                     }
                     CalibStep.DONE -> {}
                 }
@@ -121,6 +144,8 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
         try { sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_FASTEST, handler) } catch (_: Throwable) {}
 
         _state.value = _state.value.copy(step = step, progressMs = 0, totalMs = durationMs, samples = 0, liveValue = "—")
+        latestSamples = 0
+        latestLive = "—"
         timerJob = viewModelScope.launch {
             val start = System.currentTimeMillis()
             while (isActive) {
@@ -129,7 +154,7 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
                     finishStep(sm)
                     break
                 }
-                _state.value = _state.value.copy(progressMs = elapsed)
+                _state.value = _state.value.copy(progressMs = elapsed, samples = latestSamples, liveValue = latestLive)
                 delay(100)
             }
         }

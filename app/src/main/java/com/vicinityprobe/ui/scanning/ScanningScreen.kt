@@ -69,9 +69,12 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
 
     val state by vm.ui.collectAsStateWithLifecycle()
     val result by vm.result.collectAsStateWithLifecycle()
+    val error by vm.error.collectAsStateWithLifecycle()
 
     LaunchedEffect(result) {
-        result?.let { nav.navigate(Routes.report(it.id)) { popUpTo(Routes.HOME) } }
+        result?.let { r ->
+            nav.navigate(Routes.report(r.id)) { popUpTo(Routes.HOME) { inclusive = false } }
+        }
     }
 
     Scaffold(
@@ -83,7 +86,20 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val s = state
-            if (s != null && s.durationMs > 0) {
+            if (error != null) {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(t(L("扫描失败", "Scan failed")), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+                        Text(error!!, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Button(
+                    onClick = { nav.popBackStack() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) {
+                    Text(t(L("返回重试", "Back & retry")))
+                }
+            } else if (s != null && s.durationMs > 0) {
                 val elapsed = s.elapsedMs.coerceIn(0L, s.durationMs)
                 // 倒计时:环从满到空,数字向上取整(剩余 9.8s 显示 10)
                 val progress = (1f - elapsed.toFloat() / s.durationMs).coerceIn(0f, 1f)

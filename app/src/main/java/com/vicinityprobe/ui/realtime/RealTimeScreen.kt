@@ -71,6 +71,11 @@ fun RealTimeScreen(nav: NavController) {
 
     LaunchedEffect(selected) { vm.start(selected) }
 
+    // 离开页面时停止传感器/麦克风采样,避免后台持续耗电与告警
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { vm.stop() }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -130,29 +135,35 @@ fun RealTimeScreen(nav: NavController) {
             onDismissRequest = { settingsOpen = false },
             title = { Text(t(L("阈值告警", "Threshold alerts"))) },
             text = {
+                val noiseOk = noiseTh.toIntOrNull() != null
+                val tempOk = tempTh.toIntOrNull() != null
+                val lightOk = lightTh.toIntOrNull() != null
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(t(L("启用告警", "Enabled")), modifier = Modifier.weight(1f))
                         Switch(checked = alertEnabled, onCheckedChange = { alertEnabled = it })
                     }
-                    OutlinedTextField(value = noiseTh, onValueChange = { noiseTh = it }, label = { Text("Noise dB(A)") }, singleLine = true)
-                    OutlinedTextField(value = tempTh, onValueChange = { tempTh = it }, label = { Text("Temp °C") }, singleLine = true)
-                    OutlinedTextField(value = lightTh, onValueChange = { lightTh = it }, label = { Text("Light lx (below)") }, singleLine = true)
+                    OutlinedTextField(value = noiseTh, onValueChange = { noiseTh = it }, label = { Text("Noise dB(A)") }, singleLine = true, isError = !noiseOk)
+                    OutlinedTextField(value = tempTh, onValueChange = { tempTh = it }, label = { Text("Temp °C") }, singleLine = true, isError = !tempOk)
+                    OutlinedTextField(value = lightTh, onValueChange = { lightTh = it }, label = { Text("Light lx (below)") }, singleLine = true, isError = !lightOk)
                     Text(t(L("超限时通知栏提醒(同一指标 5 秒内最多一次)", "Alerts fire via notification (max once per 5 s per metric)")), style = MaterialTheme.typography.labelSmall)
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    vm.saveSettings(
-                        AlertSettings(
-                            enabled = alertEnabled,
-                            noiseDb = noiseTh.toIntOrNull() ?: 70,
-                            tempMax = tempTh.toIntOrNull() ?: 35,
-                            lightMin = lightTh.toIntOrNull() ?: 10,
-                        ),
-                    )
-                    settingsOpen = false
-                }) { Text(t(L("保存", "Save"))) }
+                TextButton(
+                    onClick = {
+                        vm.saveSettings(
+                            AlertSettings(
+                                enabled = alertEnabled,
+                                noiseDb = noiseTh.toIntOrNull() ?: 70,
+                                tempMax = tempTh.toIntOrNull() ?: 35,
+                                lightMin = lightTh.toIntOrNull() ?: 10,
+                            ),
+                        )
+                        settingsOpen = false
+                    },
+                    enabled = noiseTh.toIntOrNull() != null && tempTh.toIntOrNull() != null && lightTh.toIntOrNull() != null,
+                ) { Text(t(L("保存", "Save"))) }
             },
             dismissButton = { TextButton(onClick = { settingsOpen = false }) { Text(t(L("取消", "Cancel"))) } },
         )
@@ -168,7 +179,6 @@ private fun Oscilloscope(series: List<FloatArray>, labels: List<String>) {
                 val w = size.width
                 val h = size.height
                 // 网格
-                val grid = android.graphics.Paint().apply { color = android.graphics.Color.argb(40, 255, 255, 255); strokeWidth = 1f }
                 for (i in 0..4) {
                     val y = h * i / 4
                     drawLine(Color.Gray.copy(alpha = 0.2f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(w, y), 1f)
@@ -204,11 +214,10 @@ private fun SpectrumWaterfall(rows: List<FloatArray>) {
                 val rowH = h / 40
                 val cols = rows[0].size
                 rows.forEachIndexed { ri, row ->
-                    // 归一化到 0-80 dB 显示
+                    // 归一化到 0-80 dB 显示(蓝→黄→红)
                     for (ci in 0 until cols) {
                         val v = row[ci]
                         val norm = ((v + 20) / 90).coerceIn(0f, 1f)
-                        val color = Color(0xFF1B5E20 + ((norm * 0x00BB33).toInt() shl 8)) // 绿→红渐变简化
                         drawRect(
                             color = if (norm < 0.33f) Color(0xFF1565C0) else if (norm < 0.66f) Color(0xFFF9A825) else Color(0xFFC62828),
                             topLeft = androidx.compose.ui.geometry.Offset(w * ci / cols, h - (ri + 1) * rowH),

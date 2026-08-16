@@ -16,8 +16,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -30,6 +31,29 @@ enum class ThemeMode(val id: String) {
     companion object {
         fun fromId(id: String): ThemeMode = entries.firstOrNull { it.id == id } ?: SYSTEM
     }
+}
+
+/**
+ * 全局可观测主题状态(Compose 重组驱动):
+ * 切换主题时 MainActivity 的 VicinityProbeTheme 与 HomeScreen 同时响应。
+ */
+object ThemeState {
+    var mode by mutableStateOf(ThemeMode.SYSTEM)
+        private set
+
+    fun init(context: Context) {
+        if (!initialized) {
+            mode = ThemePrefs.mode(context)
+            initialized = true
+        }
+    }
+
+    fun setMode(context: Context, m: ThemeMode) {
+        mode = m
+        ThemePrefs.setMode(context, m)
+    }
+
+    private var initialized = false
 }
 
 private val LightColors = lightColorScheme(
@@ -48,11 +72,10 @@ private val DarkColors = darkColorScheme(
     surface = Color(0xFF12202F),
 )
 
-val LocalThemeMode = staticCompositionLocalOf { ThemeMode.SYSTEM }
-
 object ThemePrefs {
     private const val PREFS = "theme"
     private const val KEY_MODE = "mode"
+    private const val KEY_DYNAMIC = "dynamic"
 
     fun mode(context: Context): ThemeMode {
         return try {
@@ -65,19 +88,34 @@ object ThemePrefs {
     fun setMode(context: Context, mode: ThemeMode) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_MODE, mode.id).apply()
     }
+
+    /** Material You 动态取色开关(默认关闭,保持品牌配色一致性) */
+    fun dynamic(context: Context): Boolean {
+        return try {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DYNAMIC, false)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun setDynamic(context: Context, on: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_DYNAMIC, on).apply()
+    }
 }
 
 @Composable
 fun VicinityProbeTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val mode = ThemePrefs.mode(context)
+    val mode = ThemeState.mode
     val dark = when (mode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    // Android 12+ 使用 Material You 动态取色,低版本回退到品牌配色
-    val colorScheme = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+    // Material You 动态取色仅显式开启时使用(默认品牌配色,保证界面一致性)
+    val colorScheme = if (ThemePrefs.dynamic(context) &&
+        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+    ) {
         try {
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         } catch (_: Throwable) {
@@ -86,10 +124,8 @@ fun VicinityProbeTheme(content: @Composable () -> Unit) {
     } else {
         if (dark) DarkColors else LightColors
     }
-    CompositionLocalProvider(LocalThemeMode provides mode) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            content = content,
-        )
-    }
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content,
+    )
 }
