@@ -48,6 +48,10 @@ import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.SatelliteAlt
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -311,6 +315,34 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Search, contentDescription = null)
                         Text(t(L("端口扫描", "Port scan")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.SOUNDLEVEL) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.GraphicEq, contentDescription = null)
+                        Text(t(L("声级记录", "Sound level")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.WIFIMAP) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Map, contentDescription = null)
+                        Text(t(L("WiFi 地图", "WiFi map")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.GNSS) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.SatelliteAlt, contentDescription = null)
+                        Text(t(L("GNSS 卫星", "GNSS view")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.BTANALYSIS) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Bluetooth, contentDescription = null)
+                        Text(t(L("蓝牙分析", "BT analysis")))
                     }
                 }
             }

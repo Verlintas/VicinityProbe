@@ -44,6 +44,7 @@ enum class WaveMode(val id: String) {
     PRESSURE("sensor.pressure"),
     NOISE("noise"),
     SPECTRUM("spectrum"),
+    ATTITUDE("attitude"),
 }
 
 data class WaveSnapshot(
@@ -53,6 +54,14 @@ data class WaveSnapshot(
     val values: List<String>,       // 当前值显示
     val spectrum: List<FloatArray>? = null,  // 瀑布图行(每行对数幅度)
     val alert: Boolean = false,
+    val attitude: AttitudeSnapshot? = null,  // 姿态模式:roll/pitch/稳定度
+)
+
+/** 姿态快照(互补滤波融合结果,弧度) */
+data class AttitudeSnapshot(
+    val rollDeg: Double,
+    val pitchDeg: Double,
+    val stability: Float,   // 0..1,静止程度(加速度方差倒数)
 )
 
 data class AlertSettings(
@@ -120,6 +129,8 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         synchronized(kalmanLock) { kalmanMap.clear() }
         if (mode == WaveMode.SPECTRUM) {
             startSpectrum()
+        } else if (mode == WaveMode.ATTITUDE) {
+            startAttitude()
         } else {
             startSensor(mode)
         }
@@ -245,9 +256,59 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
         }.apply { isDaemon = true; start() }
     }
 
+    /** 姿态模式:互补滤波(加速度 + 陀螺仪)融合出滚转/俯仰 */
+    private var attitudeFilter: com.vicinityprobe.analysis.ComplementaryFilter? = null
+    private var lastGyroNs = 0L
+    private var lastGyroEvent = longArrayOf(0L, 0L, 0L)
+    @Volatile private var lastAttitude: AttitudeSnapshot = AttitudeSnapshot(0.0, 0.0, 0f)
+
+    private fun startAttitude() {
+        val sm = SensorManagerHolder.manager ?: return
+        val accel = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: return
+        val gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE) ?: return
+        synchronized(ringLock) { ring.clear(); ringIdx.clear(); ringCount = 0 }
+        attitudeFilter = com.vicinityprobe.analysis.ComplementaryFilter(alpha = 0.03)
+        val thread = HandlerThread("realtime-attitude")
+        thread.start()
+        sensorThread = thread
+        sensorHandler = Handler(thread.looper)
+        sensorListener = object : SensorEventListener {
+            override fun onSensorChanged(e: SensorEvent) {
+                val now = System.nanoTime()
+                if (e.sensor.type == Sensor.TYPE_ACCELEROMETER && e.values.size >= 3) {
+                    val dt = if (lastGyroNs > 0) (now - lastGyroNs) / 1e9 else 0.01
+                    val filter = attitudeFilter ?: return
+                    val att = if (lastGyroEvent.any { it != 0L }) {
+                        filter.update(dt, lastGyroEvent[0].toFloat() / 1e6f, lastGyroEvent[1].toFloat() / 1e6f, lastGyroEvent[2].toFloat() / 1e6f, e.values[0], e.values[1], e.values[2])
+                    } else filter.accelAttitude(e.values[0], e.values[1], e.values[2])
+                    // 稳定度:加速度幅值相对 9.81 的偏差
+                    val mag = kotlin.math.sqrt(e.values[0].toDouble() * e.values[0] + e.values[1].toDouble() * e.values[1] + e.values[2].toDouble() * e.values[2])
+                    val stab = (1.0 - (kotlin.math.abs(mag - 9.81) / 9.81).coerceAtMost(1.0)).toFloat()
+                    lastAttitude = AttitudeSnapshot(
+                        rollDeg = Math.toDegrees(att.roll),
+                        pitchDeg = Math.toDegrees(att.pitch),
+                        stability = stab,
+                    )
+                } else if (e.sensor.type == Sensor.TYPE_GYROSCOPE && e.values.size >= 3) {
+                    lastGyroNs = now
+                    lastGyroEvent = longArrayOf(
+                        (e.values[0] * 1e6).toLong(),
+                        (e.values[1] * 1e6).toLong(),
+                        (e.values[2] * 1e6).toLong(),
+                    )
+                }
+            }
+
+            override fun onAccuracyChanged(s: Sensor?, accuracy: Int) {}
+        }
+        try {
+            sm.registerListener(sensorListener, accel, SensorManager.SENSOR_DELAY_FASTEST, sensorHandler)
+            sm.registerListener(sensorListener, gyro, SensorManager.SENSOR_DELAY_FASTEST, sensorHandler)
+        } catch (_: Throwable) {}
+    }
+
     @android.annotation.SuppressLint("MissingPermission")
-    private fun startSpectrum() {
-        val minBuf = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+    private fun startSpectrum() {        val minBuf = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         if (minBuf <= 0) return
         synchronized(ringLock) {
             ring.clear(); ringIdx.clear(); ringCount = 0
@@ -300,6 +361,21 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun publish() {
+        if (currentMode == WaveMode.ATTITUDE) {
+            val a = lastAttitude
+            _snapshot.value = WaveSnapshot(
+                mode = WaveMode.ATTITUDE,
+                series = emptyList(),
+                labels = listOf("roll", "pitch", "稳定"),
+                values = listOf(
+                    String.format("%+.1f°", a.rollDeg),
+                    String.format("%+.1f°", a.pitchDeg),
+                    String.format("%.0f%%", a.stability * 100),
+                ),
+                attitude = a,
+            )
+            return
+        }
         val labels = when (currentMode) {
             WaveMode.ACCEL -> listOf("x", "y", "z")
             WaveMode.GYRO -> listOf("x", "y", "z")
@@ -309,6 +385,7 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
             WaveMode.PRESSURE -> listOf("hPa")
             WaveMode.NOISE -> listOf("dB(A)")
             WaveMode.SPECTRUM -> listOf("SPL")
+            WaveMode.ATTITUDE -> listOf("roll", "pitch", "stability")
         }
         val series = if (currentMode == WaveMode.SPECTRUM) {
             listOf(floatArrayOf(lastNoiseDb.toFloat()))

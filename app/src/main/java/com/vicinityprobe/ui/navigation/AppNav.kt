@@ -30,17 +30,21 @@ import androidx.navigation.navArgument
 import com.vicinityprobe.ui.calib.CalibrationScreen
 import com.vicinityprobe.ui.capture.CaptureScreen
 import com.vicinityprobe.ui.compare.CompareScreen
+import com.vicinityprobe.ui.gnss.GnssScreen
 import com.vicinityprobe.ui.history.HistoryScreen
 import com.vicinityprobe.ui.home.HomeScreen
 import com.vicinityprobe.ui.preflight.PreflightScreen
 import com.vicinityprobe.ui.realtime.RealTimeScreen
 import com.vicinityprobe.ui.report.ReportScreen
 import com.vicinityprobe.ui.scanning.ScanningScreen
+import com.vicinityprobe.ui.soundlevel.SoundLevelScreen
 import com.vicinityprobe.ui.tools.HttpRequestScreen
 import com.vicinityprobe.ui.tools.PacketSenderScreen
 import com.vicinityprobe.ui.tools.PortScanToolScreen
 import com.vicinityprobe.ui.trend.TrendScreen
 import com.vicinityprobe.ui.web.WebConsoleScreen
+import com.vicinityprobe.ui.wifimap.WifiMapScreen
+import com.vicinityprobe.ui.btanalysis.BtAnalysisScreen
 
 object Routes {
     const val HOME = "home"
@@ -57,6 +61,10 @@ object Routes {
     const val PACKET = "packet"
     const val HTTPTOOL = "httptool"
     const val PORTSCAN = "portscan"
+    const val SOUNDLEVEL = "soundlevel"
+    const val WIFIMAP = "wifimap"
+    const val GNSS = "gnss"
+    const val BTANALYSIS = "btanalysis"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -98,5 +106,9 @@ fun AppNav() {
         composable(Routes.PACKET) { PacketSenderScreen(nav) }
         composable(Routes.HTTPTOOL) { HttpRequestScreen(nav) }
         composable(Routes.PORTSCAN) { PortScanToolScreen(nav) }
+        composable(Routes.SOUNDLEVEL) { SoundLevelScreen(nav) }
+        composable(Routes.WIFIMAP) { WifiMapScreen(nav) }
+        composable(Routes.GNSS) { GnssScreen(nav) }
+        composable(Routes.BTANALYSIS) { BtAnalysisScreen(nav) }
     }
 }

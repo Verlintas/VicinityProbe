@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -124,6 +125,8 @@ fun RealTimeScreen(nav: NavController) {
             // 波形
             if (snap.mode == WaveMode.SPECTRUM) {
                 SpectrumWaterfall(snap.spectrum ?: emptyList())
+            } else if (snap.mode == WaveMode.ATTITUDE) {
+                AttitudeLevel(snap.attitude)
             } else {
                 Oscilloscope(snap.series, snap.labels)
             }
@@ -167,6 +170,55 @@ fun RealTimeScreen(nav: NavController) {
             },
             dismissButton = { TextButton(onClick = { settingsOpen = false }) { Text(t(L("取消", "Cancel"))) } },
         )
+    }
+}
+
+@Composable
+private fun AttitudeLevel(att: AttitudeSnapshot?) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("attitude", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // 水平仪圆盘:气泡位置 = (pitch, roll) 的投影
+            val primary = MaterialTheme.colorScheme.primary
+            val tertiary = MaterialTheme.colorScheme.tertiary
+            Canvas(Modifier.fillMaxWidth().height(220.dp).padding(8.dp)) {
+                val w = size.width
+                val h = size.height
+                val cx = w / 2
+                val cy = h / 2
+                val r = minOf(w, h) / 2 - 12.dp.toPx()
+                // 外圈
+                drawCircle(primary.copy(alpha = 0.15f), radius = r, center = Offset(cx, cy))
+                drawCircle(primary, radius = r, center = Offset(cx, cy), style = Stroke(width = 2f))
+                // 同心刻度圈(10° 一圈,气泡行程 ±40°)
+                val travel = (r * 0.8f) / 40f
+                for (deg in -40..40 step 10) {
+                    drawCircle(
+                        color = primary.copy(alpha = 0.3f),
+                        radius = travel * deg,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = 1f),
+                    )
+                }
+                // 十字线
+                drawLine(Color.Gray.copy(alpha = 0.4f), Offset(cx - r, cy), Offset(cx + r, cy), 1f)
+                drawLine(Color.Gray.copy(alpha = 0.4f), Offset(cx, cy - r), Offset(cx, cy + r), 1f)
+                if (att != null) {
+                    // 气泡:pitch 向右,roll 向上(设备右手系)
+                    val bx = cx + (att.pitchDeg * travel).toFloat()
+                    val by = cy - (att.rollDeg * travel).toFloat()
+                    drawCircle(tertiary.copy(alpha = 0.6f), radius = 16.dp.toPx(), center = Offset(bx, by))
+                    drawCircle(tertiary, radius = 8.dp.toPx(), center = Offset(bx, by))
+                }
+            }
+            Text(
+                if (att != null)
+                    "roll ${String.format("%+.1f°", att.rollDeg)}  ·  pitch ${String.format("%+.1f°", att.pitchDeg)}  ·  稳定 ${String.format("%.0f%%", att.stability * 100)}"
+                else "—",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
