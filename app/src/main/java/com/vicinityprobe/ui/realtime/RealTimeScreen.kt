@@ -62,6 +62,8 @@ fun RealTimeScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: RealTimeViewModel = viewModel()
     val snap by vm.snapshot.collectAsStateWithLifecycle()
+    com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 观测期间屏幕常亮
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
 
     var selected by remember { mutableStateOf(WaveMode.ACCEL) }
     var settingsOpen by remember { mutableStateOf(false) }
@@ -105,7 +107,7 @@ fun RealTimeScreen(nav: NavController) {
                 val smooth by vm.smoothing.collectAsStateWithLifecycle()
                 FilterChip(
                     selected = smooth,
-                    onClick = { vm.toggleSmoothing() },
+                    onClick = { haptics.tap(); vm.toggleSmoothing() },
                     label = { Text(t(L("平滑", "Smooth"))) },
                 )
             }

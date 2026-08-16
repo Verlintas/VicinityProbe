@@ -61,6 +61,8 @@ fun CaptureScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: CaptureViewModel = viewModel()
     val stats by vm.stats.collectAsStateWithLifecycle()
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
+    if (stats.running) com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 抓包期间屏幕常亮
 
     val authLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == android.app.Activity.RESULT_OK) vm.start()
@@ -93,13 +95,14 @@ fun CaptureScreen(nav: NavController) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
+                                    haptics.confirm()
                                     val prepare = vm.prepareIntent()
                                     if (prepare != null) authLauncher.launch(prepare)
                                     else vm.start()
                                 },
                                 enabled = !stats.running,
                             ) { Icon(Icons.Filled.PlayArrow, contentDescription = null); Text(t(L("开始抓包", "Start"))) }
-                            OutlinedButton(onClick = { vm.stop() }, enabled = stats.running) {
+                            OutlinedButton(onClick = { haptics.confirm(); vm.stop() }, enabled = stats.running) {
                                 Icon(Icons.Filled.Stop, contentDescription = null); Text(t(L("停止", "Stop")))
                             }
                             if (!stats.running && stats.pcapFile != null) {

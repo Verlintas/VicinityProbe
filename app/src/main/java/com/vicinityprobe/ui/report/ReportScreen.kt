@@ -21,6 +21,7 @@
 
 package com.vicinityprobe.ui.report
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -246,10 +247,10 @@ private fun PositioningCard(p: PositioningSummary, lang: String) {
 @Composable
 private fun MeasurementCard(m: Measurement, lang: String, reportId: String) {
     var expanded by remember { mutableStateOf(false) }
-    OutlinedCard(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth().animateContentSize()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(trBilingual(m.spec.name, lang), style = MaterialTheme.typography.titleSmall)
                     Text(
                         "${m.spec.measurand} · ${m.spec.unit.symbol}" +
@@ -258,7 +259,10 @@ private fun MeasurementCard(m: Measurement, lang: String, reportId: String) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                QualityPill(m.quality.level)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    QualityPill(m.quality.level)
+                    Text(if (expanded) "▾" else "▸", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             if (m.spec.complianceRisk) {
                 Text(

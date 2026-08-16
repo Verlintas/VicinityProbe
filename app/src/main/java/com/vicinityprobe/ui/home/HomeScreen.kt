@@ -110,6 +110,7 @@ fun HomeScreen(nav: NavController) {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
     }
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
 
     Scaffold(
         topBar = {
@@ -235,6 +236,7 @@ fun HomeScreen(nav: NavController) {
 
             Button(
                 onClick = {
+                    haptics.confirm()
                     if (fullMode) {
                         val caps = CapabilityProbe.enumerate(context)
                         val ids = caps.filter { it.status == com.vicinityprobe.probe.CapabilityStatus.SUPPORTED }.map { it.probeId }

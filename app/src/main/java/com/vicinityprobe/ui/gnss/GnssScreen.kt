@@ -57,6 +57,7 @@ fun GnssScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: GnssViewModel = viewModel()
     val st by vm.state.collectAsStateWithLifecycle()
+    com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 卫星观测期间屏幕常亮
 
     DisposableEffect(Unit) {
         vm.start()

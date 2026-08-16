@@ -62,6 +62,8 @@ fun BtAnalysisScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: BtAnalysisViewModel = viewModel()
     val st by vm.state.collectAsStateWithLifecycle()
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
+    if (st.scanning) com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 扫描期间屏幕常亮
 
     var durationSec by remember { mutableStateOf(10) }
 
@@ -84,10 +86,10 @@ fun BtAnalysisScreen(nav: NavController) {
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { vm.start(durationSec) }, enabled = !st.scanning) {
+                        Button(onClick = { haptics.confirm(); vm.start(durationSec) }, enabled = !st.scanning) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null); Text(t(L("开始扫描", "Scan")))
                         }
-                        OutlinedButton(onClick = { vm.stop() }, enabled = st.scanning) {
+                        OutlinedButton(onClick = { haptics.confirm(); vm.stop() }, enabled = st.scanning) {
                             Icon(Icons.Filled.Stop, contentDescription = null); Text(t(L("停止", "Stop")))
                         }
                     }

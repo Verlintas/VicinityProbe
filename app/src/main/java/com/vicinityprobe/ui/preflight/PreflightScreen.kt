@@ -91,6 +91,7 @@ fun PreflightScreen(nav: NavController) {
     val currentCategory = categoryOrder[selectedTab.coerceIn(0, categoryOrder.size - 1)]
     val visibleCaps = caps.filter { it.spec.category == currentCategory }
     val selectedIds = selected.filterValues { it }.keys
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
 
     Scaffold(
         topBar = {
@@ -113,6 +114,7 @@ fun PreflightScreen(nav: NavController) {
                     }
                     TextButton(
                         onClick = {
+                            haptics.confirm()
                             val ids = selectedIds.toList()
                             nav.navigate(Routes.scan(ids, "SELECTED", durationMs))
                         },

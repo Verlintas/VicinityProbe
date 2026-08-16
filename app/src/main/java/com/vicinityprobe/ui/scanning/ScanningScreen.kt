@@ -64,6 +64,8 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
     val lang = langOf(context)
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: ScanViewModel = viewModel()
+    com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 扫描期间屏幕常亮
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
 
     LaunchedEffect(Unit) { vm.start(ids, mode, durationMs) }
 
@@ -136,6 +138,7 @@ fun ScanningScreen(nav: NavController, ids: Set<String>, mode: String, durationM
             }
             Button(
                 onClick = {
+                    haptics.confirm()
                     vm.cancel()
                     nav.popBackStack()
                 },

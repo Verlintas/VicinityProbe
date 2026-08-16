@@ -63,6 +63,8 @@ fun SoundLevelScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: SoundLevelViewModel = viewModel()
     val st by vm.state.collectAsStateWithLifecycle()
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
+    if (st.running) com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 记录期间屏幕常亮
 
     var durationSec by remember { mutableStateOf(300L) }
 
@@ -87,10 +89,10 @@ fun SoundLevelScreen(nav: NavController) {
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { vm.start(durationSec) }, enabled = !st.running) {
+                        Button(onClick = { haptics.confirm(); vm.start(durationSec) }, enabled = !st.running) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null); Text(t(L("开始记录", "Record")))
                         }
-                        OutlinedButton(onClick = { vm.stop() }, enabled = st.running) {
+                        OutlinedButton(onClick = { haptics.confirm(); vm.stop() }, enabled = st.running) {
                             Icon(Icons.Filled.Stop, contentDescription = null); Text(t(L("停止", "Stop")))
                         }
                     }
@@ -100,15 +102,14 @@ fun SoundLevelScreen(nav: NavController) {
             if (st.running) {
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            String.format("%.1f", st.currentDb) + " dB(A)",
+                        com.vicinityprobe.ui.components.AnimatedNumber(
+                            value = String.format("%.1f", st.currentDb) + " dB(A)",
                             style = MaterialTheme.typography.displaySmall,
                             color = when {
                                 st.currentDb >= 85 -> MaterialTheme.colorScheme.error
                                 st.currentDb >= 70 -> Color(0xFFE65100)
                                 else -> MaterialTheme.colorScheme.primary
                             },
-                            fontWeight = FontWeight.Bold,
                         )
                         Text(
                             "${st.elapsedSec / 60}:${String.format("%02d", st.elapsedSec % 60)} / ${st.totalSec / 60}:00",

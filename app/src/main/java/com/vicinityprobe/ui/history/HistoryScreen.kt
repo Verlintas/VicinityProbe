@@ -88,32 +88,45 @@ fun HistoryScreen(nav: NavController) {
         },
     ) { padding ->
         if (items.isEmpty()) {
-            Column(Modifier.padding(padding).fillMaxSize(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(t(L("暂无报告,先进行一次扫描吧", "No reports yet. Run a scan first.")))
+            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = false,
+                onRefresh = { vm.refresh() },
+                modifier = Modifier.padding(padding).fillMaxSize(),
+            ) {
+                Column(Modifier.fillMaxSize(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Text(t(L("暂无报告,先进行一次扫描吧", "No reports yet. Run a scan first.")))
+                    Text(t(L("下拉刷新", "Pull down to refresh")), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             return@Scaffold
         }
-        LazyColumn(Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(items, key = { it.id }) { meta ->
-                OutlinedCard(onClick = { nav.navigate(Routes.report(meta.id)) }, modifier = Modifier.fillMaxWidth()) {
-                    ListItem(
-                        headlineContent = { Text(meta.name, style = MaterialTheme.typography.titleSmall) },
-                        supportingContent = {
-                            Text(
-                                SimpleDateFormat("yyyy-MM-dd HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(meta.createdAt)) +
-                                    " · ${meta.probeCount} probes" +
-                                    " · EXC ${meta.excellentCount} / DEG ${meta.degradedCount} / FAIL ${meta.failedCount}" +
-                                    if (meta.samplesKept) " · RAW" else "",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
-                        trailingContent = {
-                            Row {
-                                IconButton(onClick = { renameTarget = meta; newName = meta.name }) { Icon(Icons.Filled.Edit, contentDescription = "rename") }
-                                IconButton(onClick = { deleteTarget = meta }) { Icon(Icons.Filled.Delete, contentDescription = "delete") }
-                            }
-                        },
-                    )
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = false,
+            onRefresh = { vm.refresh() },
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(items, key = { it.id }) { meta ->
+                    OutlinedCard(onClick = { nav.navigate(Routes.report(meta.id)) }, modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = { Text(meta.name, style = MaterialTheme.typography.titleSmall) },
+                            supportingContent = {
+                                Text(
+                                    SimpleDateFormat("yyyy-MM-dd HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(meta.createdAt)) +
+                                        " · ${meta.probeCount} probes" +
+                                        " · EXC ${meta.excellentCount} / DEG ${meta.degradedCount} / FAIL ${meta.failedCount}" +
+                                        if (meta.samplesKept) " · RAW" else "",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                            trailingContent = {
+                                Row {
+                                    IconButton(onClick = { renameTarget = meta; newName = meta.name }) { Icon(Icons.Filled.Edit, contentDescription = "rename") }
+                                    IconButton(onClick = { deleteTarget = meta }) { Icon(Icons.Filled.Delete, contentDescription = "delete") }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

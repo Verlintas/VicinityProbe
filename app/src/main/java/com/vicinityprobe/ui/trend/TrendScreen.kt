@@ -123,7 +123,12 @@ fun TrendScreen(nav: NavController) {
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = false,
+            onRefresh = { vm.refresh() },
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
+        LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 OutlinedCard {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -197,6 +202,7 @@ fun TrendScreen(nav: NavController) {
                     }
                 }
             }
+        }
         }
     }
 }

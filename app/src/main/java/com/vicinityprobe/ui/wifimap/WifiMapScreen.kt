@@ -64,6 +64,8 @@ fun WifiMapScreen(nav: NavController) {
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
     val vm: WifiMapViewModel = viewModel()
     val st by vm.state.collectAsStateWithLifecycle()
+    com.vicinityprobe.ui.components.rememberKeepScreenOn()   // 记录地图期间屏幕常亮
+    val haptics = com.vicinityprobe.ui.components.rememberAppHaptics()
 
     var live by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(live) {
@@ -93,13 +95,13 @@ fun WifiMapScreen(nav: NavController) {
                     com.vicinityprobe.ui.components.WarningNote(t(L("需要位置权限与 WiFi 扫描权限", "Requires location & WiFi-scan permissions")))
                     KeyValueRow(t(L("当前信号", "Current")), "${st.currentSsid}  ${st.currentRssi} dBm", primary = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { vm.recordPoint() }) {
+                        Button(onClick = { haptics.confirm(); vm.recordPoint() }) {
                             Icon(Icons.Filled.LocationOn, contentDescription = null); Text(t(L("记录当前点", "Record point")))
                         }
                         OutlinedButton(onClick = { live = !live }) {
                             Text(if (live) t(L("停止刷新", "Stop live")) else t(L("实时刷新", "Live")))
                         }
-                        OutlinedButton(onClick = { vm.clear() }, enabled = st.samples.isNotEmpty()) {
+                        OutlinedButton(onClick = { haptics.heavy(); vm.clear() }, enabled = st.samples.isNotEmpty()) {
                             Icon(Icons.Filled.Delete, contentDescription = null); Text(t(L("清空", "Clear")))
                         }
                     }
