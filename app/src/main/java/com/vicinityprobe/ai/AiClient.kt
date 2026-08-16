@@ -8,6 +8,7 @@
 
 package com.vicinityprobe.ai
 
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
@@ -84,14 +85,73 @@ class AiClient(private val config: AiConfigStore.Config) {
         return complete("You are a test.", "Reply with exactly: OK", timeoutMs)
     }
 
+    /**
+     * 探测局域网内监听 11434 端口的 Ollama 主机。
+     * 候选:网关 / 网关±1 / 本机同网段 .1-.8 / localhost。
+     * 并行 Socket 探测(每地址 300ms 超时),返回第一个成功的 baseUrl。
+     */
+    suspend fun probeLocalOllama(context: android.content.Context): String? {
+        return withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val candidates = LinkedHashSet<String>()
+            candidates.add("127.0.0.1")
+            try {
+                val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                val lp = cm.getLinkProperties(cm.activeNetwork)
+                lp?.routes?.firstOrNull { it.isDefaultRoute }?.gateway?.hostAddress?.let { gw ->
+                    candidates.add(gw)
+                    val base = gw.substringBeforeLast('.', gw)
+                    if (base != gw) {
+                        listOf(1, 2, 3, 4, 5, 6, 7, 8).forEach { candidates.add("$base.$it") }
+                    }
+                }
+                lp?.linkAddresses?.firstOrNull()?.address?.hostAddress?.let { ip ->
+                    val base = ip.substringBeforeLast('.', ip)
+                    if (base != ip) listOf(1, 2, 3, 4).forEach { candidates.add("$base.$it") }
+                }
+            } catch (_: Throwable) {}
+            candidates.firstOrNull { host ->
+                try {
+                    val s = java.net.Socket()
+                    s.connect(java.net.InetSocketAddress(host, 11434), 300)
+                    s.close()
+                    true
+                } catch (_: Throwable) { false }
+            }?.let { "http://$it:11434/v1" }
+        }
+    }
+
     companion object {
-        /** 常见预设(供 UI 快速选择) */
+        /** 预设服务:名称 / baseUrl / 可选模型列表(第一个为默认) */
+        data class Preset(
+            val name: String,
+            val baseUrl: String,
+            val models: List<String>,
+        ) {
+            val defaultModel: String get() = models.first()
+        }
+
         val PRESETS = listOf(
-            Triple("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
-            Triple("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
-            Triple("Moonshot", "https://api.moonshot.cn/v1", "moonshot-v1-8k"),
-            Triple("Ollama (本地)", "http://10.0.2.2:11434/v1", "llama3.2"),
-            Triple("Groq", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+            Preset("OpenAI", "https://api.openai.com/v1", listOf("gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "o3-mini")),
+            Preset("DeepSeek", "https://api.deepseek.com/v1", listOf("deepseek-chat", "deepseek-reasoner")),
+            Preset("Kimi", "https://api.moonshot.cn/v1", listOf("moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k", "kimi-latest")),
+            Preset("智谱 GLM", "https://open.bigmodel.cn/api/paas/v4", listOf("glm-4-flash", "glm-4-plus", "glm-4-long")),
+            Preset("通义 Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1", listOf("qwen-plus", "qwen-turbo", "qwen-max")),
+            Preset("Groq", "https://api.groq.com/openai/v1", listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768")),
+            Preset("Mistral", "https://api.mistral.ai/v1", listOf("mistral-small-latest", "mistral-medium-latest", "open-mistral-nemo")),
+            Preset("OpenRouter", "https://openrouter.ai/api/v1", listOf("openai/gpt-4o-mini", "deepseek/deepseek-chat", "anthropic/claude-3.5-sonnet")),
+            Preset("xAI Grok", "https://api.x.ai/v1", listOf("grok-beta", "grok-2-latest")),
+            Preset("Ollama (本地)", "http://10.0.2.2:11434/v1", listOf("llama3.2", "qwen2.5", "gemma2", "mistral")),
+            Preset("LocalAI (本地)", "http://10.0.2.2:8080/v1", listOf("gpt-4o-mini", "llama3.2")),
         )
+
+        /** 模拟器检测:模拟器上 10.0.2.2 才是宿主机 */
+        fun isEmulator(): Boolean {
+            val fp = android.os.Build.FINGERPRINT
+            return fp.contains("generic") || fp.contains("emulator") || fp.contains("sdk") ||
+                android.os.Build.MODEL.contains("Emulator") || android.os.Build.MODEL.contains("sdk_gphone")
+        }
+
+        /** Ollama 本地默认地址:模拟器用 10.0.2.2,真机用 127.0.0.1(需 Ollama 监听本机) */
+        fun ollamaBaseUrl(): String = if (isEmulator()) "http://10.0.2.2:11434/v1" else "http://127.0.0.1:11434/v1"
     }
 }

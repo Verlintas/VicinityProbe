@@ -10,6 +10,7 @@ package com.vicinityprobe.ui.ai
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,12 +20,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -64,7 +69,12 @@ fun AiSettingsScreen(nav: NavController) {
     var sanitize by remember { mutableStateOf(initial.sanitize) }
     var testResult by remember { mutableStateOf<String?>(null) }
     var testing by remember { mutableStateOf(false) }
+    var probing by remember { mutableStateOf(false) }
+    var modelMenuOpen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // 当前预设匹配的模型列表
+    val currentPreset = AiClient.PRESETS.firstOrNull { it.baseUrl == baseUrl.trim().trimEnd('/') }
 
     fun save() {
         vm.saveConfig(
@@ -89,7 +99,7 @@ fun AiSettingsScreen(nav: NavController) {
         ) {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(t(L("配置 OpenAI 兼容 API(OpenAI / DeepSeek / Moonshot / 本地 Ollama…)", "Configure an OpenAI-compatible API (OpenAI / DeepSeek / Moonshot / local Ollama…)")), style = MaterialTheme.typography.bodySmall)
+                    Text(t(L("配置 OpenAI 兼容 API(OpenAI / DeepSeek / Kimi / 智谱 / 通义 / 本地 Ollama…)", "Configure an OpenAI-compatible API (OpenAI / DeepSeek / Kimi / GLM / Qwen / local Ollama…)")), style = MaterialTheme.typography.bodySmall)
                     Text(
                         t(L("数据将发送到你配置的服务;若使用本地 Ollama 则数据不出设备", "Data is sent to your configured service; with local Ollama nothing leaves the device")),
                         style = MaterialTheme.typography.labelSmall,
@@ -100,13 +110,13 @@ fun AiSettingsScreen(nav: NavController) {
 
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(t(L("预设服务", "Presets")), style = MaterialTheme.typography.titleSmall)
+                    Text(t(L("预设服务(点选自动填充地址与模型)", "Presets (tap to auto-fill URL & model)")), style = MaterialTheme.typography.titleSmall)
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AiClient.PRESETS.forEach { (name, url, mdl) ->
+                        AiClient.PRESETS.forEach { preset ->
                             FilterChip(
-                                selected = baseUrl == url,
-                                onClick = { baseUrl = url; model = mdl },
-                                label = { Text(name) },
+                                selected = baseUrl.trim().trimEnd('/') == preset.baseUrl,
+                                onClick = { baseUrl = preset.baseUrl; model = preset.defaultModel },
+                                label = { Text(preset.name) },
                             )
                         }
                     }
@@ -118,13 +128,68 @@ fun AiSettingsScreen(nav: NavController) {
                         value = apiKey, onValueChange = { apiKey = it },
                         label = { Text("API Key") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = model, onValueChange = { model = it },
-                        label = { Text("Model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    )
+                    // 模型:下拉选择预设模型 + 可自由输入
+                    Box {
+                        OutlinedTextField(
+                            value = model, onValueChange = { model = it },
+                            label = { Text("Model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                if (currentPreset != null && currentPreset.models.size > 1) {
+                                    IconButton(onClick = { modelMenuOpen = true }) {
+                                        Icon(Icons.Filled.Search, contentDescription = "models")
+                                    }
+                                }
+                            },
+                        )
+                        DropdownMenu(expanded = modelMenuOpen, onDismissRequest = { modelMenuOpen = false }) {
+                            (currentPreset?.models ?: emptyList()).forEach { m ->
+                                DropdownMenuItem(text = { Text(m) }, onClick = { model = m; modelMenuOpen = false })
+                            }
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(t(L("发送前脱敏(移除位置/MAC/SSID 等)", "Sanitize before sending (strip location/MAC/SSID)")), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         Switch(checked = sanitize, onCheckedChange = { sanitize = it })
+                    }
+                }
+            }
+
+            // Ollama 自动识别
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t(L("本地 Ollama 自动识别", "Local Ollama auto-detect")), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        t(L("模拟器会自动使用 10.0.2.2(宿主机映射);真机可一键探测局域网内的 Ollama", "Emulators auto-use 10.0.2.2 (host mapping); on real devices tap to probe the LAN for Ollama")),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            probing = true
+                            testResult = null
+                            scope.launch {
+                                val found = AiClient(AiConfigStore.Config()).probeLocalOllama(context)
+                                if (found != null) {
+                                    baseUrl = found
+                                    testResult = "✓ " + t(L("找到本地 Ollama:", "Found local Ollama:")) + " $found"
+                                } else {
+                                    testResult = t(L("未发现局域网 Ollama(确认电脑已启动 Ollama 并允许局域网访问 OLLAMA_HOST=0.0.0.0)", "No local Ollama found (ensure it runs and listens on LAN: OLLAMA_HOST=0.0.0.0)"))
+                                }
+                                probing = false
+                            }
+                        },
+                        enabled = !probing,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                        Text(if (probing) t(L("探测中…", "Probing…")) else t(L("探测局域网 Ollama", "Probe LAN for Ollama")))
+                    }
+                    if (AiClient.isEmulator()) {
+                        Text(
+                            t(L("当前为模拟器:宿主机固定为 10.0.2.2,已自动处理", "Emulator detected: host is 10.0.2.2 — handled automatically")),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }
