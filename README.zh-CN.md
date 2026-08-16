@@ -30,6 +30,7 @@
 - **传感器标定向导**:磁力计 8 字标定(硬铁偏移)、加速度计重力基准、陀螺仪零偏 —— 输出可分享的校准参数报告
 - **NFC 卡片分析器**:读卡模式识别 ISO 14443A/B、ISO 15693、FeliCa → UID/ATQA/SAK、Mifare Classic/Ultralight/NTAG/DESFire 类型识别、**Mifare 默认密钥安全审计**(KeyA+KeyB 逐扇区、未锁扇区完整转储)、NDEF 解析(TEXT/URI/智能海报)、**NDEF 写入器**(仅限自己的测试标签)、风险评级(INFO/LOW/HIGH)
 - **HCE 卡模拟器**:HostApduService(AID F0010203040506)响应 SELECT/READ/GET_UID,测试自己拥有的读卡器
+- **AI 深度分析(可选,自带 API Key)**:本地异常检测 + 大模型解读任意报告 —— 兼容 OpenAI 系 API(OpenAI/DeepSeek/Kimi/智谱/通义/Groq/Mistral/OpenRouter/xAI/本地 Ollama),结构化 JSON 卡片渲染,按报告缓存,多报告**趋势解读**,温度/token/自定义提示词设置,Key 用 Keystore 加密,发送前可脱敏
 - **安全审计引擎**:聚合全部安全探测(端口/TLS/证书/HTTP/WiFi/SMB/MQTT/SSH)→ 分级(INFO→CRITICAL)审计报告,应用内展示并可分享 Markdown
 - **协议深探**:TLS 协商密码套件/协议版本/ALPN 提取、SSH 版本 banner、手写 SMB2 NEGOTIATE(dialect + 签名模式)
 - **安全与渗透辅助**:局域网主机发现(OUI 厂商识别)、全子网扫描、端口扫描(服务识别)、服务 Banner 抓取、HTTP/TLS 指纹(Web 技术栈与证书分析)、HTTP 方法与安全头测试、TLS 版本探测、MQTT Broker 探测、Web 路径枚举、并发连接测试、NTP 时间偏移、SSDP/UPnP 设备发现、DNS 解析测试、TCP 连通性测试 —— 目标主机可配置(默认网关)

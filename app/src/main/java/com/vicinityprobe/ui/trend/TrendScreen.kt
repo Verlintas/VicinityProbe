@@ -116,7 +116,7 @@ fun TrendScreen(nav: NavController) {
     var interval by rememberSaveable { mutableStateOf(10L) }
     val monitoring by vm.monitoring.collectAsStateWithLifecycle()
 
-    // AI 趋势解读(感知版)
+    // AI 趋势解读(AI 模块)
     val aiVm: com.vicinityprobe.ui.ai.AiViewModel = viewModel()
     val aiState by aiVm.state.collectAsStateWithLifecycle()
     val aiConfigured = com.vicinityprobe.ai.AiConfigStore.configured(context)
@@ -160,7 +160,7 @@ fun TrendScreen(nav: NavController) {
                                 enabled = monitoring,
                             ) { Text(t(L("停止", "Stop"))) }
                         }
-                        // AI 趋势解读(感知版)
+                        // AI 趋势解读(AI 模块)
                         if (aiConfigured) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedButton(

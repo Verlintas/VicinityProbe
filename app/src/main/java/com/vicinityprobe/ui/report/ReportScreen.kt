@@ -131,7 +131,7 @@ fun ReportScreen(nav: NavController, reportId: String) {
         ) {
             PlanHeader(r, lang)
             QualitySummary(r)
-            // AI 深度分析(感知版):配置过 API Key 才显示
+            // AI 深度分析(AI 模块):配置过 API Key 才显示
             if (com.vicinityprobe.ai.AiConfigStore.configured(context)) {
                 AiAnalysisCard(r, lang) { md ->
                     val f = java.io.File(context.cacheDir, "ai_analysis.md")
@@ -333,7 +333,7 @@ private fun SpectrumBlock(s: SpectrumResult, lang: String) {
 
 private fun tb(s: String, lang: String): String = trBilingual(s, lang)
 
-/** AI 深度分析卡片(感知版):结构化渲染 + 缓存回看 */
+/** AI 深度分析卡片(AI 模块):结构化渲染 + 缓存回看 */
 @Composable
 private fun AiAnalysisCard(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
     val vm: com.vicinityprobe.ui.ai.AiViewModel = viewModel()
