@@ -55,6 +55,9 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -372,10 +375,24 @@ fun HomeScreen(nav: NavController) {
                         Text(t(L("轨迹记录", "GPS track")))
                     }
                 }
-                OutlinedCard(onClick = { nav.navigate(Routes.PORTSCAN) }, modifier = Modifier.weight(1f)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.SENSORREC) }, modifier = Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp)) {
-                        Icon(Icons.Filled.Search, contentDescription = null)
-                        Text(t(L("端口扫描", "Port scan")))
+                        Icon(Icons.Filled.Analytics, contentDescription = null)
+                        Text(t(L("RAW 录制", "RAW recorder")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.BATTERYLOG) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.BatteryFull, contentDescription = null)
+                        Text(t(L("电池曲线", "Battery log")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.NETMATRIX) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Hub, contentDescription = null)
+                        Text(t(L("网络矩阵", "Net matrix")))
                     }
                 }
             }

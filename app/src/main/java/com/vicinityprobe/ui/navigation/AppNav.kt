@@ -48,6 +48,9 @@ import com.vicinityprobe.ui.btanalysis.BtAnalysisScreen
 import com.vicinityprobe.ui.pingmonitor.PingMonitorScreen
 import com.vicinityprobe.ui.speedtest.SpeedTestScreen
 import com.vicinityprobe.ui.gpstrack.GpsTrackScreen
+import com.vicinityprobe.ui.sensorrec.SensorRecorderScreen
+import com.vicinityprobe.ui.batterylog.BatteryLoggerScreen
+import com.vicinityprobe.ui.netmatrix.NetMatrixScreen
 
 object Routes {
     const val HOME = "home"
@@ -71,6 +74,9 @@ object Routes {
     const val PINGMONITOR = "pingmonitor"
     const val SPEEDTEST = "speedtest"
     const val GPSTRACK = "gpstrack"
+    const val SENSORREC = "sensorrec"
+    const val BATTERYLOG = "batterylog"
+    const val NETMATRIX = "netmatrix"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -119,5 +125,8 @@ fun AppNav() {
         composable(Routes.PINGMONITOR) { PingMonitorScreen(nav) }
         composable(Routes.SPEEDTEST) { SpeedTestScreen(nav) }
         composable(Routes.GPSTRACK) { GpsTrackScreen(nav) }
+        composable(Routes.SENSORREC) { SensorRecorderScreen(nav) }
+        composable(Routes.BATTERYLOG) { BatteryLoggerScreen(nav) }
+        composable(Routes.NETMATRIX) { NetMatrixScreen(nav) }
     }
 }
