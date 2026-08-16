@@ -17,8 +17,8 @@ android {
         applicationId = "com.vicinityprobe"
         minSdk = 31
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.2.1"
+        versionCode = 19
+        versionName = "1.3.0"
     }
 
     signingConfigs {
