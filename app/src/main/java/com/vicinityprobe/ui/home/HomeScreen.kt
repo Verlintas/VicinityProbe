@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.SimCard
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api

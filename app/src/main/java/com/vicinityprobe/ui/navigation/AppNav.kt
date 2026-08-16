@@ -53,6 +53,7 @@ import com.vicinityprobe.ui.batterylog.BatteryLoggerScreen
 import com.vicinityprobe.ui.netmatrix.NetMatrixScreen
 import com.vicinityprobe.ui.nfcscan.NfcScanScreen
 import com.vicinityprobe.ui.hce.HceScreen
+import com.vicinityprobe.ui.ai.AiSettingsScreen
 
 object Routes {
     const val HOME = "home"
@@ -81,6 +82,7 @@ object Routes {
     const val NETMATRIX = "netmatrix"
     const val NFCSCAN = "nfcscan"
     const val HCE = "hce"
+    const val AISETTINGS = "aisettings"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -134,5 +136,6 @@ fun AppNav() {
         composable(Routes.NETMATRIX) { NetMatrixScreen(nav) }
         composable(Routes.NFCSCAN) { NfcScanScreen(nav) }
         composable(Routes.HCE) { HceScreen(nav) }
+        composable(Routes.AISETTINGS) { AiSettingsScreen(nav) }
     }
 }

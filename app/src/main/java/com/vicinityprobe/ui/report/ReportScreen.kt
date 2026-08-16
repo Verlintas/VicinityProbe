@@ -30,9 +30,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
@@ -128,6 +130,14 @@ fun ReportScreen(nav: NavController, reportId: String) {
         ) {
             PlanHeader(r, lang)
             QualitySummary(r)
+            // AI 深度分析(感知版):配置过 API Key 才显示
+            if (com.vicinityprobe.ai.AiConfigStore.configured(context)) {
+                AiAnalysisCard(r, lang) { md ->
+                    val f = java.io.File(context.cacheDir, "ai_analysis.md")
+                    f.writeText(md)
+                    com.vicinityprobe.report.ReportExporter.shareFile(context, f, "text/markdown")
+                }
+            }
             r.analysis?.let { AnalysisSection(it, lang) }
             SecurityAuditSection(r, lang) { md ->
                 val f = java.io.File(context.cacheDir, "security_audit.md")
@@ -321,6 +331,52 @@ private fun SpectrumBlock(s: SpectrumResult, lang: String) {
 }
 
 private fun tb(s: String, lang: String): String = trBilingual(s, lang)
+
+/** AI 深度分析卡片(感知版) */
+@Composable
+private fun AiAnalysisCard(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
+    val vm: com.vicinityprobe.ui.ai.AiViewModel = viewModel()
+    val aiState by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
+
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tb("AI 深度分析|AI deep analysis", lang), style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text(
+                        tb("本地异常检测 + 大模型解读|Local anomaly detection + LLM interpretation", lang),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Button(
+                    onClick = { vm.analyze(r) },
+                    enabled = !aiState.running,
+                ) {
+                    if (aiState.running) {
+                        androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(t(L("分析中…", "Analyzing…")))
+                    } else {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null)
+                        Text(t(L("分析", "Analyze")))
+                    }
+                }
+            }
+            aiState.error?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            aiState.result?.let { result ->
+                Text(result, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                TextButton(onClick = { onShare(result) }) {
+                    Icon(Icons.Filled.Share, contentDescription = null)
+                    Text(tb("分享分析|Share analysis", lang))
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun SecurityAuditSection(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
