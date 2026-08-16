@@ -45,10 +45,11 @@ We follow **responsible disclosure**:
 
 ## Usage Boundary
 
-This tool performs **active network probing** (port scanning, packet capture, HTTP fingerprinting, DNS comparison, SMB/TLS negotiation, etc.).
+This tool performs **active network probing** (port scanning, packet capture, HTTP fingerprinting, DNS comparison, SMB/TLS negotiation, etc.) and **NFC security testing** (default-key audit, NDEF writing, HCE card emulation).
 
-- Only use it on **networks and devices you are authorized to test**.
+- Only use it on **networks, devices and cards you are authorized to test**.
 - Capturing traffic may collect plaintext data and DNS queries — treat captured data as sensitive.
+- The NFC analyzer performs **no key recovery and no cloning**; it only checks default-key accessibility.
 - You are responsible for complying with the laws of your jurisdiction.
 
 See [README.md](README.md) for the full compliance notice.

@@ -59,13 +59,44 @@ network access (Wi-Fi + cellular) and a stable position (e.g., a desk).
 - [ ] JSON/MD/ZIP export share successfully (buttons disable while exporting)
 - [ ] Old reports (created before v1.0) still open — JSON backward compatible
 
-## 7. Theme (1.1)
+## 7. Theme & interaction (1.1)
 
 - [ ] Theme icon on home toggles system → light → dark; applies instantly
-- [ ] On Android 12+ the app follows Material You wallpaper colors
+- [ ] Brand palette is used by default (consistent look); Material You dynamic
+      color only when explicitly enabled (prefs flag)
 - [ ] Charts: tap a line chart → crosshair + value readout appears
+- [ ] Start/record buttons give haptic feedback
+- [ ] Screen stays awake during scan / real-time monitor / capture
 
-## 8. Battery drain
+## 8. NFC security testing
+
+- [ ] **NFC analyzer**: hold a Mifare card to the back → UID/ATQA/SAK/type
+      recognized (hex values correct, no FFFFFFFF garbage)
+- [ ] Default-key audit: a factory card reports unlocked sectors + HIGH risk;
+      a card with changed keys reports modified keys
+- [ ] **Full dump** of unlocked sectors exports as hex text
+- [ ] **NDEF writer**: write text to an owned NTAG, verify with another reader
+- [ ] **HCE emulator**: a second phone in reader mode SELECTs
+      F0010203040506 and reads "VICINITY-PROBE-X"
+- [ ] HCE: 1-byte APDU to the emulator does not crash the app
+
+## 9. New tools (1.1+)
+
+- [ ] **Sound level recorder**: 5 min run yields per-minute bins + stats
+- [ ] **Sensor RAW recorder**: accel stream ~200 Hz with live waveform,
+      CSV opens correctly with channel headers
+- [ ] **Ping monitor**: latency/jitter/loss series renders; timeouts shown red
+- [ ] **Speed test**: download + upload complete with Mbps ratings
+- [ ] **Network matrix**: 5 nodes monitored, radar view updates every 2 s
+- [ ] **GPS track**: record 100 m walk → distance ≈ walked, KML opens in
+      Google Earth
+- [ ] **Battery logger**: 10 min run shows voltage/temp curves + %/h rate
+- [ ] **WiFi map**: 3+ samples produce a heatmap (live scan refresh works)
+- [ ] **GNSS view**: outdoors shows satellites in sky plot, used-in-fix rings
+- [ ] **BT analysis**: 10 s scan lists devices with RSSI ranges + vendors
+
+## 10. Battery drain
 
 - [ ] 10 s scan consumes no noticeable battery (< 0.5%)
 - [ ] 1 h of periodic monitoring (10 min interval) drains < 5%
+- [ ] Battery logger left running does not burn CPU (no busy loop)

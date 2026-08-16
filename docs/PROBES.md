@@ -338,6 +338,10 @@ Probes marked ⚠️ collect data that is regulated or considered personal data 
 
 These probes are flagged in-app (preflight & report) and in exported reports. Denying a permission or deselecting a probe in preflight excludes it from the session.
 
+## 7.6 NFC security-testing scope
+
+The NFC analyzer (13.56 MHz only) reads tag metadata and audits **default-key accessibility** (8 well-known public keys, KeyA+KeyB, per-sector). It performs **no key recovery and no cloning**. The NDEF writer targets tags you own; the HCE emulator (AID F0010203040506) responds to SELECT/READ/GET_UID for reader testing. Breaking into others' cards is illegal.
+
 ## 8. Known limitations (honestly reported)
 
 - Sound pressure level is an **uncalibrated reference value** (microphone sensitivity unknown); magnetic field strength is likewise reference-level

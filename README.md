@@ -17,7 +17,7 @@ Professional environmental measurement system: standardized data acquisition fro
 - **Statistical inference**: least-squares linear trend with R² and significance p-value, autocorrelation periodicity detection, skewness/kurtosis — wired into trend charts and vibration analysis
 - **Sensor fusion**: complementary filter (accel+gyro attitude), tilt-compensated heading, least-squares magnetometer hard-iron calibration (sphere fit)
 - **Sensor denoising**: rolling median filter (spike removal), exponential moving average, 1D Kalman filter — real-time smoothing toggle in the monitor
-- **Acoustics**: AudioRecord direct PCM capture → LAeq / Lpeak / L10 / L50 / L90
+- **Acoustics**: AudioRecord direct PCM capture → LAeq / Lpeak / L10 / L50 / L90; **sound level recorder** (per-minute LAeq bins, session stats, 70 dB reference chart, CSV export)
 - **Spectral analysis**: hand-written Radix-2 FFT (Hann window) → dominant frequency / spectral flatness / band energy, **spectral peaks** (parabolic-interpolated), **harmonic analysis with THD%** (2f–8f)
 - **Vibration analysis**: dominant frequency / RMS / crest factor / THD / periodicity / ISO 2631 approximate level
 - **Raw sample archive**: every numeric channel persisted to CSV (`samples/<probeId>/channel_<ch>.csv`)
@@ -50,13 +50,13 @@ Professional environmental measurement system: standardized data acquisition fro
 ```
 # Requirements: JDK 17+, Android SDK 36
 ./gradlew assembleRelease     # output: app/build/outputs/apk/release/VicinityProbe-<version>.apk
-./gradlew testDebugUnitTest   # unit tests (statistics/FFT/analysis/report)
+./gradlew testDebugUnitTest   # unit tests (statistics/FFT/analysis/fusion/TLS/NFC)
 ./gradlew lint                # static analysis
 ```
 
 ## Permissions
 
-Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity recognition, body sensors, notifications, foreground service. All permissions are declared with their purpose in-app and can be denied individually; denied probes are marked `PERMISSION_DENIED` in the report without aborting the session.
+Location, nearby WiFi devices, Bluetooth scan/connect, microphone, NFC, IR blaster, activity recognition, body sensors, notifications, foreground service. All permissions are declared with their purpose in-app and can be denied individually; denied probes are marked `PERMISSION_DENIED` in the report without aborting the session.
 
 > **Compliance**: Use this software in compliance with all applicable local laws and regulations. You are responsible for how you use it.
 >
@@ -66,9 +66,8 @@ Location, nearby WiFi devices, Bluetooth scan/connect, microphone, activity reco
 
 ## Limitations (honestly reported)
 
-- Sound pressure level is an **uncalibrated reference value** (absolute levels require device calibration)
 - `thermal` / CPU frequency sysfs files are unreadable on most devices
 - WiFi scans are subject to system throttling
 - No telemetry, no cloud sync — all data stays on-device; active network probes (port scan, packet capture, DNS comparison, LAN discovery…) run only when you trigger them
-- **Not a Flipper Zero replacement**: phones lack 125 kHz RFID hardware, Mifare offline key recovery and RF sniffing — hardware tools are needed for those
-- Sound pressure level and magnetic-field level are uncalibrated reference values
+- **Hardware limits**: phones lack 125 kHz RFID antennas, Mifare offline key recovery and RF sniffing — dedicated hardware tools are required for those
+- Sound pressure level is an **uncalibrated reference value**; magnetic-field level likewise

@@ -21,7 +21,7 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | `keepRawSamples` | 是否存档原始样本 |
 | `requiredPermissions` | 所需权限 |
 
-共 **93 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
+共 **96 项**,分成 12 类(MOTION / ENVIRONMENT / MAGNETIC / BIOSIGNAL / AUDIO / POSITIONING / RADIO / ELECTRICAL / SYSTEM / DEVICE / CONTEXT / SECURITY)。
 
 ## 2. 测量流程
 
@@ -277,6 +277,9 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 |---|---|
 | ⚠️ `net_dns_hijack` | 自写 DNS 客户端对 8.8.8.8 / 1.1.1.1 / 223.5.5.5 查询 5 个域名 → 跨解析源一致性判定(劫持/分裂 DNS 嫌疑) |
 | ⚠️ `net_arp_spoof` | 会话内 2Hz 采样网关 MAC → 变化检测(网络切换或 ARP 欺骗嫌疑) |
+| `net_arp_table` | 被动读取 `/proc/net/arp` → 邻居 IP/MAC/设备/状态、重复 MAC 检测、网关厂商识别(OUI) |
+| ⚠️ `net_doh` | 加密 DNS-over-HTTPS 解析(Cloudflare / Google)→ 各域名延迟、IP、证书存在性(宽松信任链检测拦截) |
+| ⚠️ `net_quic` | 手写 QUIC Initial 包(UDP 443,长包头 v1)→ 响应版本 / SCID / 可达性判定 |
 | ⚠️ `net_mdns` | 组播 PTR 查询 `_services._dns-sd._udp.local` → 服务实例枚举(支持压缩指针) |
 | ⚠️ `net_upnp_detail` | SSDP 发现后逐个拉取设备描述 XML → deviceType / friendlyName / model / 厂商 / 序列号 / 服务列表 |
 | ⚠️ `audio_link_test` | 扬声器播放 1kHz 滴声,麦克风捕获回环 → 扬声器→麦克风延迟、峰值电平、检测次数 |
@@ -335,6 +338,10 @@ VicinityProbe 是一套**专业环境测量系统**。每个探测项都是测�
 | ⚠️ `net_mqtt` / `net_tcp_concurrency` / `net_ntp` | 对第三方服务做主动探测 |
 
 这些项在应用里(预检页和报告页)以及导出报告里都会标注;在预检页取消勾选,或者拒绝对应权限,就能把它们排除出测量会话。
+
+## 7.6 NFC 安全测试范围
+
+NFC 分析器(仅 13.56MHz)读取标签元数据并审计**默认密钥可访问性**(8 个公开默认密钥,KeyA+KeyB,逐扇区)。**不做密钥恢复,不做克隆**。NDEF 写入器仅用于你拥有的标签;HCE 模拟器(AID F0010203040506)响应 SELECT/READ/GET_UID 用于测试你拥有的读卡器。破解他人卡片属违法行为。
 
 ## 8. 已知边界(报告里会如实注明)
 

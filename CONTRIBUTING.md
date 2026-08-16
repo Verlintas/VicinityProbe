@@ -39,7 +39,7 @@ Requirements: JDK 17+, Android SDK 36 (`ANDROID_HOME` or `local.properties`).
 - Numeric channels must go through `ChannelRecorder` (raw CSV archive); non-numeric info goes into `attributes`.
 - Every measurement must carry a `QualityReport` (level + reason code); never silently swallow failures.
 - The analysis engine outputs measurement-derived facts only — no subjective scores.
-- SDK 36 removed several deprecated sensor constants — match at runtime via `Sensor.getStringType()`.
+- SDK 36 removed several legacy APIs — `GnssStatus.timeToFirstFix`, `BatteryManager` voltage/temperature properties and the VPN foreground-service type are gone; use broadcast extras (`"voltage"`/`"temperature"`) and runtime checks instead.
 - GitHub-facing content (README, docs, **release notes**) must be in English.
 
 ## Pull requests
