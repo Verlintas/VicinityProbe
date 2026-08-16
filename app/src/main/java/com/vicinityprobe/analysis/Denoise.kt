@@ -91,6 +91,6 @@ object Denoise {
         val spikesIn = input.count { abs(it - mean) > 3 * std }
         val spikesOut = output.count { abs(it - mean) > 3 * std }
         if (spikesIn == 0) return 1.0
-        return (spikesIn - spikesOut).toDouble() / spikesIn
+        return ((spikesIn - spikesOut).toDouble() / spikesIn).coerceAtLeast(0.0)
     }
 }

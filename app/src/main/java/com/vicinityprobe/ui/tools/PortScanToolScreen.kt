@@ -223,7 +223,7 @@ private suspend fun scanAdvanced(
                 try {
                     val t0 = System.nanoTime()
                     Socket().use { s ->
-                        s.connect(InetSocketAddress(host, port), timeout)
+                        s.connect(InetSocketAddress(host, port), timeout.coerceAtLeast(50))
                         found.add(PortScanResult(port, (System.nanoTime() - t0) / 1_000_000))
                     }
                 } catch (_: Throwable) {}

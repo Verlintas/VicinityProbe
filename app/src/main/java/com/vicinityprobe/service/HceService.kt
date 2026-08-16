@@ -31,7 +31,7 @@ class HceService : HostApduService() {
     }
 
     override fun processCommandApdu(commandApdu: ByteArray, extras: Bundle?): ByteArray {
-        if (commandApdu.isEmpty()) return SW_UNKNOWN
+        if (commandApdu.size < 2) return SW_UNKNOWN
         val cla = commandApdu[0].toInt() and 0xFF
         val ins = commandApdu[1].toInt() and 0xFF
         return when {

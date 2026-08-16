@@ -67,17 +67,17 @@ class SpeedTestViewModel(application: Application) : AndroidViewModel(applicatio
             _state.value = _state.value.copy(phase = SpeedPhase.DOWNLOAD, latencyMs = latency, jitterMs = jitter)
 
             // 2) 下载测速:拉取 20MB,5 秒上限
-            val dl = measureTransfer(downloadUrl, upload = false)
+            val dl = measureTransfer(downloadUrl, upload = false, active = { job?.isActive == true })
             _state.value = _state.value.copy(phase = SpeedPhase.UPLOAD, downloadMbps = dl)
 
             // 3) 上传测速:POST 8MB 随机数据
-            val ul = measureTransfer(uploadUrl, upload = true)
+            val ul = measureTransfer(uploadUrl, upload = true, active = { job?.isActive == true })
             _state.value = _state.value.copy(phase = SpeedPhase.DONE, uploadMbps = ul)
         }
     }
 
     /** 测量传输速率(Mbps),最多 maxSec 秒 */
-    private fun measureTransfer(urlStr: String, upload: Boolean, maxSec: Int = 6): Double {
+    private fun measureTransfer(urlStr: String, upload: Boolean, maxSec: Int = 6, active: () -> Boolean = { true }): Double {
         return try {
             val conn = URL(urlStr).openConnection()
             conn.connectTimeout = 5000
@@ -91,7 +91,7 @@ class SpeedTestViewModel(application: Application) : AndroidViewModel(applicatio
                 val chunk = ByteArray(256 * 1024)
                 Random().nextBytes(chunk)
                 val out = BufferedOutputStream(conn.outputStream)
-                while (System.nanoTime() < deadline && totalBytes < 16L * 1024 * 1024) {
+                while (active() && System.nanoTime() < deadline && totalBytes < 16L * 1024 * 1024) {
                     out.write(chunk)
                     totalBytes += chunk.size
                     _state.value = _state.value.copy(phaseProgress = (totalBytes.toFloat() / (16L * 1024 * 1024)))
@@ -102,7 +102,7 @@ class SpeedTestViewModel(application: Application) : AndroidViewModel(applicatio
                 conn.connect()
                 val `in` = BufferedInputStream(conn.inputStream)
                 val buf = ByteArray(64 * 1024)
-                while (System.nanoTime() < deadline) {
+                while (active() && System.nanoTime() < deadline) {
                     val n = `in`.read(buf)
                     if (n < 0) break
                     totalBytes += n

@@ -368,7 +368,7 @@ class MqttProbeSampler : Sampler {
             s.close()
             if (n >= 2 && resp[0].toInt() == 0x20) {
                 val code = resp[2].toInt()
-                val accepted = code == 0
+                val accepted = resp.size >= 3 && code == 0
                 "present (CONNACK=${if (accepted) "accepted" else "refused:$code"})"
             } else null
         } catch (_: Throwable) { null }

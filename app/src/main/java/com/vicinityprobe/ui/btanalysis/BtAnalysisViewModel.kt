@@ -81,6 +81,7 @@ class BtAnalysisViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
             }
+            activeCallback = callback
             try { leScanner?.startScan(callback) } catch (_: Throwable) {}
             val started = System.currentTimeMillis()
             while (isActive && System.currentTimeMillis() - started < durationSec * 1000L) {
@@ -93,6 +94,7 @@ class BtAnalysisViewModel(application: Application) : AndroidViewModel(applicati
                 delay(500)
             }
             try { leScanner?.stopScan(callback) } catch (_: Throwable) {}
+            activeCallback = null
             val (devices, packets) = synchronized(rssiByAddr) { snapshot() }
             _state.value = BtAnalysisState(scanning = false, elapsedSec = durationSec, devices = devices, totalPackets = packets)
         }
@@ -125,7 +127,18 @@ class BtAnalysisViewModel(application: Application) : AndroidViewModel(applicati
     fun stop() {
         job?.cancel()
         job = null
+        stopScanNow()
         _state.value = _state.value.copy(scanning = false)
+    }
+
+    private var activeCallback: ScanCallback? = null
+
+    private fun stopScanNow() {
+        try {
+            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
+            activeCallback?.let { adapter.bluetoothLeScanner?.stopScan(it) }
+        } catch (_: Throwable) {}
+        activeCallback = null
     }
 
     override fun onCleared() {

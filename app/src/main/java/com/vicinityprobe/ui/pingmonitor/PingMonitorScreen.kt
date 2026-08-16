@@ -139,13 +139,14 @@ private fun LatencyChart(samples: List<Long>) {
                 val h = size.height
                 val pad = 4.dp.toPx()
                 val path = Path()
+                var pathStarted = false
                 samples.forEachIndexed { i, v ->
                     val x = pad + (w - 2 * pad) * (i.toFloat() / (samples.size - 1).coerceAtLeast(1))
                     val y = if (v < 0) h - pad else pad + (h - 2 * pad) * (1f - (v.toFloat() / maxV))
                     if (v < 0) {
                         drawCircle(bad, radius = 3f, center = Offset(x, y))
                     } else {
-                        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                        if (!pathStarted) { path.moveTo(x, y); pathStarted = true } else path.lineTo(x, y)
                     }
                 }
                 drawPath(path, color = good, style = Stroke(width = 2f))

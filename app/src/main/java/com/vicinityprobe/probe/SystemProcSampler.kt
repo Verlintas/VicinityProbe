@@ -205,10 +205,20 @@ class DiskStatsSampler : Sampler {
             var reads = 0L; var writes = 0L; var sectors = 0L
             var found = false
             File("/proc/diskstats").readLines().forEach { line ->
-                val p = line.trim().split(Regex("\\s+")).mapNotNull { it.toLongOrNull() }
-                if (p.size >= 14) {
-                    found = true
-                    reads += p[3]; writes += p[7]; sectors += p[5] + p[9]
+                val parts = line.trim().split(Regex("\\s+"))
+                // 格式: 主:次 设备名 读完成 读合并 读扇区 读耗时ms 写完成 写合并 写扇区 写耗时ms ...
+                val isNew = parts.size >= 18 && parts[2].toLongOrNull() == null   // 新版带设备名
+                val base = if (isNew) 2 else 0
+                if (parts.size >= base + 12) {
+                    val readsC = parts.getOrNull(base + 2)?.toLongOrNull()
+                    val writesC = parts.getOrNull(base + 6)?.toLongOrNull()
+                    val sectorsR = parts.getOrNull(base + 4)?.toLongOrNull()
+                    val sectorsW = parts.getOrNull(base + 8)?.toLongOrNull()
+                    if (readsC != null && writesC != null) {
+                        found = true
+                        reads += readsC; writes += writesC
+                        sectors += (sectorsR ?: 0) + (sectorsW ?: 0)
+                    }
                 }
             }
             if (!found) null else DiskSample(reads, writes, sectors)

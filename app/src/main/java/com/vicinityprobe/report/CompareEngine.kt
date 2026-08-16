@@ -63,7 +63,7 @@ object CompareEngine {
                     "p95" to (sa.p95 to sb.p95),
                     "rms" to (sa.rms to sb.rms),
                 ).forEach { (stat, pair) ->
-                    if (kotlin.math.abs(pair.first - pair.second) > 1e-9) {
+                    if (pair.first.isNaN() || pair.second.isNaN() || kotlin.math.abs(pair.first - pair.second) > 1e-9) {
                         rows.add(CompareRow(name, ch, stat, "%.4g".format(pair.first), "%.4g".format(pair.second)))
                     }
                 }

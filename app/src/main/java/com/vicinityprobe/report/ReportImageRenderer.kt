@@ -86,7 +86,12 @@ object ReportImageRenderer {
         }
 
         val lines = wrap(sb.lines().filter { it.isNotEmpty() })
-        val height = lines.size * LINE + PAD * 2
+        // 位图高度上限保护:超过 800 行截断,避免 OOM/超过设备位图尺寸上限
+        val maxLines = 800
+        val truncated = if (lines.size > maxLines) {
+            lines.subList(0, maxLines) + "… (truncated ${lines.size - maxLines} lines)"
+        } else lines
+        val height = (truncated.size * LINE + PAD * 2).coerceAtMost(12000)
         val bitmap = Bitmap.createBitmap(W, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.rgb(247, 250, 251))

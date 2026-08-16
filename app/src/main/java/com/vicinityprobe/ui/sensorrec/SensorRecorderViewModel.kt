@@ -79,8 +79,20 @@ class SensorRecorderViewModel(application: Application) : AndroidViewModel(appli
         val chs = _state.value.sensor.chCount
         val file = File(app.filesDir, "recordings").apply { mkdirs() }
             .resolve("rec_${_state.value.sensor.label}_${System.currentTimeMillis()}.csv")
-        val w = FileWriter(file)
-        w.write(if (chs == 4) "t_ms,w,x,y,z\n" else (0 until chs).joinToString(",", "t_ms,", "\n") { it.toString() })
+        val w = try {
+            FileWriter(file)
+        } catch (e: Exception) {
+            _state.value = _state.value.copy(error = "无法创建录制文件|Cannot create recording file: ${e.message}")
+            return
+        }
+        val channelNames = when (_state.value.sensor) {
+            RecSensor.ACCEL -> listOf("ax", "ay", "az")
+            RecSensor.GYRO -> listOf("gx", "gy", "gz")
+            RecSensor.MAG -> listOf("mx", "my", "mz")
+            RecSensor.ROTATION -> listOf("w", "x", "y", "z")
+            RecSensor.PRESSURE -> listOf("pressure")
+        }
+        w.write(channelNames.joinToString(",", "t_ms,", "\n"))
         writer = w
 
         synchronized(liveLock) {
@@ -154,7 +166,8 @@ class SensorRecorderViewModel(application: Application) : AndroidViewModel(appli
     fun liveSnapshot(channels: Int): List<FloatArray> {
         return synchronized(liveLock) {
             (0 until channels).map { i ->
-                val arr = liveRing["ch$i"] ?: FloatArray(0)
+                val arr = liveRing["ch$i"] ?: return@synchronized emptyList()
+                if (arr.isEmpty()) return@synchronized emptyList()
                 val idx = liveIdx["ch$i"] ?: 0
                 FloatArray(300) { k -> arr[(idx - 300 + k + 600) % 300] }
             }

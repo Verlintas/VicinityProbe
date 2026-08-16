@@ -36,6 +36,7 @@ object LinearTrend {
     fun fit(samples: List<Double>, dtSeconds: Double): TrendFit? {
         val n = samples.size
         if (n < 3 || dtSeconds <= 0) return null
+        if (samples.any { !it.isFinite() }) return null
         var sx = 0.0; var sy = 0.0; var sxy = 0.0; var sxx = 0.0; var syy = 0.0
         for (i in samples.indices) {
             val x = i * dtSeconds
@@ -55,7 +56,11 @@ object LinearTrend {
             r
         }
         val ssTot = syy - sy * sy / n
-        val r2 = if (ssTot > 1e-12) 1.0 - ssRes / ssTot else 0.0
+        val r2 = when {
+            ssTot > 1e-12 -> 1.0 - ssRes / ssTot
+            ssRes < 1e-12 -> 1.0   // 常数序列:完美拟合
+            else -> 0.0
+        }
         // 斜率标准误
         val se = if (n > 2) sqrt((ssRes / (n - 2)) / (sxx - sx * sx / n)) else 0.0
         val t = when {
@@ -123,6 +128,9 @@ object Autocorrelation {
      * @return (lag, acfValue, periodSeconds = lag*dt)
      */
     fun detectPeriod(samples: List<Double>, dtSeconds: Double, maxLag: Int = 64, threshold: Double = 0.3): Triple<Int, Double, Double>? {
+        // 零方差(常数序列)无周期性可言
+        val mean0 = samples.average()
+        if (samples.all { kotlin.math.abs(it - mean0) < 1e-12 }) return null
         val a = acf(samples, maxLag)
         if (a.isEmpty()) return null
         var bestVal = 0.0

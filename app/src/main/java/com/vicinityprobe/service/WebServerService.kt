@@ -146,7 +146,8 @@ class WebServerService : Service() {
         val candidate = if (rel.isEmpty()) File(root, "$safe/report.json") else File(File(root, safe), rel)
         val canonical = try { candidate.canonicalPath } catch (_: Throwable) { return null }
         val rootCanonical = try { File(root, safe).canonicalPath } catch (_: Throwable) { return null }
-        return if (canonical.startsWith(rootCanonical)) candidate else null
+        // 前缀匹配必须带分隔符,防 /reports/a 匹配 /reports/ab
+        return if (canonical == rootCanonical || canonical.startsWith(rootCanonical + File.separator)) candidate else null
     }
 
     private fun handle(client: Socket) {
@@ -439,6 +440,7 @@ setInterval(()=>{loadReports()},10000);
 
     override fun onDestroy() {
         stopServer()
+        connectionPool.shutdown()
         super.onDestroy()
     }
 }

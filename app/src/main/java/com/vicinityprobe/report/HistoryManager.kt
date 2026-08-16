@@ -66,7 +66,9 @@ class HistoryManager(private val context: Context) {
             reportDir.mkdirs()
             File(reportDir, "report.json").writeText(JsonReport.encode(report))
             val meta = metaOf(report)
-            val index = list().filterNot { it.id == meta.id } + meta
+            // 读索引:损坏时回退到 rescan,避免把旧报告从索引中清掉
+            val existing = readIndexOrRescan()
+            val index = existing.filterNot { it.id == meta.id } + meta
             indexFile.writeText(json.encodeToString(index.sortedByDescending { it.createdAt }))
             return meta
         }
@@ -74,11 +76,18 @@ class HistoryManager(private val context: Context) {
 
     fun list(): List<ReportMeta> {
         if (!indexFile.exists()) rescan()
-        return try {
-            json.decodeFromString<List<ReportMeta>>(indexFile.readText())
-        } catch (_: Throwable) {
-            rescan()
-            emptyList()
+        return readIndexOrRescan()
+    }
+
+    /** 读索引,损坏/不存在时重建(全流程持锁) */
+    private fun readIndexOrRescan(): List<ReportMeta> {
+        synchronized(indexLock) {
+            if (!indexFile.exists()) return rescan()
+            return try {
+                json.decodeFromString<List<ReportMeta>>(indexFile.readText())
+            } catch (_: Throwable) {
+                rescan()
+            }
         }
     }
 

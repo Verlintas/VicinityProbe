@@ -51,7 +51,11 @@ class WifiMapViewModel(application: Application) : AndroidViewModel(application)
             if (best == null) {
                 _state.value = _state.value.copy(error = "暂无位置(GPS 开启并获取到定位后才能记录)|No location yet (enable GPS and obtain a fix)")
             }
-            val scans = try { wifi.scanResults } catch (_: Throwable) { emptyList() }
+            val scans = try {
+                wifi.startScan()   // 主动触发新扫描,否则拿到的是陈旧缓存
+                kotlinx.coroutines.delay(1500)
+                wifi.scanResults
+            } catch (_: Throwable) { emptyList() }
             val strongest = scans.maxByOrNull { it.level }
             _state.value = _state.value.copy(
                 currentRssi = strongest?.level ?: 0,

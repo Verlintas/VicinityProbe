@@ -91,7 +91,7 @@ class GpsTrackViewModel(application: Application) : AndroidViewModel(application
         try {
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2f, l)
         } catch (_: Throwable) {
-            _state.value = _state.value.copy(error = "无法订阅定位|Cannot subscribe to location")
+            _state.value = _state.value.copy(error = "无法订阅定位|Cannot subscribe to location", recording = false)
         }
     }
 

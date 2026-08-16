@@ -44,6 +44,7 @@ object ScanTargetConfig {
 /** 网络辅助:网关/IP/子网信息 */
 object NetInfo {
     fun gatewayAndPrefix(ctx: Context): Pair<String, Int>? {
+        // IPv6-only 网络下跳过(子网扫描/ARP 仅支持 IPv4)
         val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
         val lp = cm.getLinkProperties(cm.activeNetwork) ?: return null
         val gw = lp.routes.firstOrNull { it.isDefaultRoute }?.gateway?.hostAddress ?: return null
@@ -254,32 +255,43 @@ class HttpFingerprintSampler : Sampler {
     }
 
     private fun httpProbe(host: String, port: Int, tls: Boolean, out: MutableMap<String, String>): String? {
-        val io: java.io.DataOutputStream
-        val input: java.io.InputStream
-        if (tls) {
-            val ssl = javax.net.ssl.SSLSocketFactory.getDefault().createSocket(host, port) as javax.net.ssl.SSLSocket
-            ssl.soTimeout = 2500
-            ssl.startHandshake()
-            io = java.io.DataOutputStream(ssl.outputStream)
-            input = ssl.inputStream
-        } else {
-            val socket = Socket()
-            socket.connect(InetSocketAddress(host, port), 1500)
-            socket.soTimeout = 2500
-            io = java.io.DataOutputStream(socket.getOutputStream())
-            input = socket.getInputStream()
+        try {
+            val io: java.io.DataOutputStream
+            val input: java.io.InputStream
+            val holder: java.io.Closeable
+            if (tls) {
+                val ssl = javax.net.ssl.SSLSocketFactory.getDefault().createSocket(host, port) as javax.net.ssl.SSLSocket
+                ssl.soTimeout = 2500
+                ssl.startHandshake()
+                io = java.io.DataOutputStream(ssl.outputStream)
+                input = ssl.inputStream
+                holder = ssl
+            } else {
+                val socket = Socket()
+                socket.connect(InetSocketAddress(host, port), 1500)
+                socket.soTimeout = 2500
+                io = java.io.DataOutputStream(socket.getOutputStream())
+                input = socket.getInputStream()
+                holder = socket
+            }
+            try {
+                io.writeBytes("HEAD / HTTP/1.1\r\nHost: $host\r\nUser-Agent: VicinityProbe/0.4\r\nConnection: close\r\n\r\n")
+                io.flush()
+                val reader = java.io.BufferedReader(java.io.InputStreamReader(input))
+                val status = reader.readLine()
+                var line = reader.readLine()
+                while (line != null && line.isNotEmpty()) {
+                    val idx = line.indexOf(':')
+                    if (idx > 0) out[line.substring(0, idx).trim()] = line.substring(idx + 1).trim()
+                    line = reader.readLine()
+                }
+                return status
+            } finally {
+                try { holder.close() } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {
+            return null
         }
-        io.writeBytes("HEAD / HTTP/1.1\r\nHost: $host\r\nUser-Agent: VicinityProbe/0.4\r\nConnection: close\r\n\r\n")
-        io.flush()
-        val reader = java.io.BufferedReader(java.io.InputStreamReader(input))
-        val status = reader.readLine()
-        var line = reader.readLine()
-        while (line != null && line.isNotEmpty()) {
-            val idx = line.indexOf(':')
-            if (idx > 0) out[line.substring(0, idx).trim()] = line.substring(idx + 1).trim()
-            line = reader.readLine()
-        }
-        return status
     }
 
     private fun tlsCertInfo(host: String, port: Int): String? {

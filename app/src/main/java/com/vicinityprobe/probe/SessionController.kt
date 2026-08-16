@@ -69,7 +69,7 @@ class SessionController(
 ) {
     private val live = LiveMetrics()
     private val state = MutableStateFlow(SessionUiState())
-    private var cancelled = false
+    @Volatile private var cancelled = false
     private var jobs: List<Job> = emptyList()
 
     fun stateFlow(): StateFlow<SessionUiState> = state.asStateFlow()

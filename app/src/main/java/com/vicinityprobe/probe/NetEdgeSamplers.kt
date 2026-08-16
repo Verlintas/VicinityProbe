@@ -180,8 +180,8 @@ class QuicProbeSampler : Sampler {
 
     /** 发 QUIC Initial(伪随机 DCID),等待 3s 内收到任何 UDP 响应 */
     private fun probeQuic(host: String, port: Int): Quad {
+        val socket = DatagramSocket()
         return try {
-            val socket = DatagramSocket()
             socket.soTimeout = 3000
             val rnd = java.util.Random()
             val dcid = ByteArray(8) { (rnd.nextInt(256)).toByte() }
@@ -195,7 +195,6 @@ class QuicProbeSampler : Sampler {
             } catch (_: SocketTimeoutException) {
                 -1
             }
-            socket.close()
             val latencyMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
             // 解析版本(长包头 bytes 1-4)
             val version = if (rp.length >= 5 && firstByte and 0x80 != 0)
@@ -207,11 +206,13 @@ class QuicProbeSampler : Sampler {
             Quad(latencyMs, version, scid, firstByte)
         } catch (_: Throwable) {
             Quad(0L, 0, "", -1)
+        } finally {
+            try { socket.close() } catch (_: Throwable) {}
         }
     }
 
     private fun buildQuicInitial(dcid: ByteArray): ByteArray {
-        // 长包头: 1 字节首部(0xC0=初始) + 4 字节版本(0x00000001) + DCID len + DCID + SCID len(0) + Token len(0) + 长度
+        // 长包头: 1 字节首部(0xC0=初始) + 4 字节版本(0x00000001) + DCID len + DCID + SCID len(0) + Token len(0) + 包长度
         val out = java.io.ByteArrayOutputStream()
         out.write(0xC0)                          // 长头 + 固定位 + 初始包类型
         out.write(byteArrayOf(0, 0, 0, 1))       // QUIC v1
@@ -219,9 +220,9 @@ class QuicProbeSampler : Sampler {
         out.write(dcid)                          // DCID
         out.write(0)                             // SCID 长度
         out.write(0)                             // token 长度
-        out.write(byteArrayOf(0, 0))             // 包长度(占位,0)
         val body = ByteArray(64)                 // 伪 CRYPTO 帧(服务端只需识别初始包)
         java.util.Random().nextBytes(body)
+        out.write(body.size shr 8); out.write(body.size and 0xFF)   // 回填包长度
         out.write(body)
         return out.toByteArray()
     }

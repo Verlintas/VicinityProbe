@@ -55,7 +55,9 @@ object TlsClientHello {
         }
         if (ciphers.isEmpty()) return null
         val hex = { v: Int -> String.format("%04X", v) }
-        return "${hex(ver)},${ciphers.joinToString("-") { hex(it) }},${extList.joinToString("-") { hex(it) }}"
+        val ciphersStr = ciphers.joinToString("-") { hex(it) }
+        val extsStr = extList.joinToString("-") { hex(it) }
+        return "${hex(ver)},$ciphersStr" + if (extsStr.isEmpty()) "" else ",$extsStr"
     }
 
     /** 解析 ClientHello 中的 SNI 扩展;失败返回 null */

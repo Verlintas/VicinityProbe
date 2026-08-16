@@ -85,8 +85,8 @@ class SshVersionSampler : Sampler {
         }
         // 解析版本与厂商
         val parts = banner.split("-")
-        val vendor = parts.getOrNull(1) ?: "?"
-        val version = parts.getOrNull(2) ?: "?"
+        val vendor = parts.getOrNull(2) ?: "?"
+        val version = parts.getOrNull(1) ?: "?"
         val attrs = LinkedHashMap<String, String>()
         attrs["target"] = target
         attrs["banner"] = banner.take(100)
@@ -136,7 +136,7 @@ class SmbProbeSampler : Sampler {
             // 68..70: CreditCharge=0, 70..72: ChannelSequence/Reserved, 72..76: Status, 76: Command=0(NEGOTIATE)
             header[12] = 0
             // 78..80: CreditRequest=1
-            header[14] = 1; header[15] = 0
+            header[18] = 1
             // 80..88: Flags/NextCommand/MessageId
             // 88..96: ProcessId/TreeId
             // 96..104: SessionId

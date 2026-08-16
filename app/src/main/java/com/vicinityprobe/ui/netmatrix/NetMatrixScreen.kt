@@ -120,7 +120,7 @@ private fun MatrixView(st: NetMatrixState) {
                 val h = size.height
                 val cx = w / 2
                 val cy = h / 2
-                val r = minOf(w, h) / 2 - 24.dp.toPx()
+                val r = (minOf(w, h) / 2 - 24.dp.toPx()).coerceAtLeast(0f)
                 // 外圈 + 刻度圈
                 drawCircle(primary.copy(alpha = 0.1f), radius = r, center = Offset(cx, cy))
                 drawCircle(primary.copy(alpha = 0.3f), radius = r * 0.6f, center = Offset(cx, cy), style = Stroke(1f))

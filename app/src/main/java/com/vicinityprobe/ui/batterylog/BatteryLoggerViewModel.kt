@@ -134,7 +134,7 @@ class BatteryLoggerViewModel(application: Application) : AndroidViewModel(applic
         val sb = StringBuilder()
         sb.appendLine("t_ms,voltage_mv,current_ma,temp_c,level_pct")
         _state.value.samples.forEach { s ->
-            sb.appendLine("${s.tMs},${s.voltageMv},${String.format("%.1f", s.currentMa)},${String.format("%.1f", s.tempC)},${s.levelPct}")
+            sb.appendLine("${s.tMs},${s.voltageMv},${String.format(java.util.Locale.US, "%.1f", s.currentMa)},${String.format(java.util.Locale.US, "%.1f", s.tempC)},${s.levelPct}")
         }
         return sb.toString()
     }

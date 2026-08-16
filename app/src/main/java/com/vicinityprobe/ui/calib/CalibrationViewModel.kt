@@ -58,9 +58,9 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
     private var timerJob: Job? = null
     private var currentStep = CalibStep.MAG
 
-    private val magSamples = ArrayList<FloatArray>()
-    private val accelSamples = ArrayList<FloatArray>()
-    private val gyroSamples = ArrayList<FloatArray>()
+    private val magSamples = java.util.Collections.synchronizedList(ArrayList<FloatArray>())
+    private val accelSamples = java.util.Collections.synchronizedList(ArrayList<FloatArray>())
+    private val gyroSamples = java.util.Collections.synchronizedList(ArrayList<FloatArray>())
 
     /** 传感器回调线程写入,定时器读取(10Hz 发布) */
     @Volatile private var latestSamples = 0
@@ -212,7 +212,7 @@ class CalibrationViewModel(application: android.app.Application) : AndroidViewMo
                     }
                     _state.value = _state.value.copy(
                         gyroBiasX = sx / n, gyroBiasY = sy / n, gyroBiasZ = sz / n,
-                        gyroStddev = sqrt(sq / n - (sx * sx + sy * sy + sz * sz) / (n * n)),
+                        gyroStddev = sqrt((sq / n - (sx * sx + sy * sy + sz * sz) / (n * n)).coerceAtLeast(0.0)),
                         step = CalibStep.DONE,
                         complete = true,
                     )

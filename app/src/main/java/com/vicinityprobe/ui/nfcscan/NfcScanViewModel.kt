@@ -30,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** 卡片分析结果 */
@@ -95,8 +97,11 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         analyze(tag, ndef)
     }
 
+    private val analyzeMutex = kotlinx.coroutines.sync.Mutex()
+
     private fun analyze(tag: Tag, ndefMessages: List<NdefMessage>?) {
         viewModelScope.launch(Dispatchers.IO) {
+            analyzeMutex.withLock {
             _state.value = NfcCardReport(scanning = true)
             val report = try {
                 analyzeTag(tag, ndefMessages)
@@ -104,12 +109,13 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
                 _state.value.copy(lastError = e.message ?: "error")
             }
             _state.value = report.copy(scanning = false)
+            }
         }
     }
 
     private fun analyzeTag(tag: Tag, ndefMessages: List<NdefMessage>?): NfcCardReport {
         val techs = tag.techList.toList()
-        val uid = tag.id.joinToString("") { String.format("%02X", it) }
+        val uid = tag.id.joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
         val findings = ArrayList<String>()
         var defaultKeyUsed = false
         var unlockedSectors = 0
@@ -128,8 +134,8 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         runCatching {
             NfcA.get(tag)?.let { nfcA ->
                 nfcA.connect()
-                atqa = nfcA.atqa.joinToString("") { String.format("%02X", it) }
-                sak = String.format("%02X", nfcA.sak)
+                atqa = nfcA.atqa.joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
+                sak = String.format("%02X", nfcA.sak.toInt() and 0xFF)
                 maxTrans = nfcA.maxTransceiveLength
                 nfcA.close()            }
         }
@@ -172,7 +178,7 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
                             val firstBlock = mfc.sectorToBlock(sector)
                             for (b in 0 until blocks) {
                                 val data = mfc.readBlock(firstBlock + b)
-                                dumpLines.add("s${sector}.${b}: " + data.joinToString("") { String.format("%02X", it) })
+                                dumpLines.add("s${sector}.${b}: " + data.joinToString("") { String.format("%02X", it.toInt() and 0xFF) })
                             }
                         } catch (_: Throwable) {}
                     }
@@ -181,7 +187,7 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
                 if (unlockedSectors > 0) {
                     try {
                         val block = mfc.readBlock(0)
-                        readSector0 = block.joinToString("") { String.format("%02X", it) }
+                        readSector0 = block.joinToString("") { String.format("%02X", it.toInt() and 0xFF) }
                     } catch (_: Throwable) {}
                 }
                 mfc.close()
@@ -195,7 +201,7 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
                 for (page in 0 until minOf(ul.maxTransceiveLength / 4, 32)) {
                     runCatching {
                         val d = ul.readPages(page)
-                        ulPages.add("p$page: " + d.joinToString("") { String.format("%02X", it) })
+                        ulPages.add("p$page: " + d.joinToString("") { String.format("%02X", it.toInt() and 0xFF) })
                     }
                 }
                 ul.close()

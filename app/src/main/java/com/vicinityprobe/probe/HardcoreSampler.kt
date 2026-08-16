@@ -39,8 +39,8 @@ import java.net.URL
 /** 自写 DNS 客户端:构造查询包并解析 A/CNAME 记录 */
 object MiniDns {
     fun query(server: String, domain: String, timeoutMs: Int = 2000): List<String>? {
+        val socket = DatagramSocket()
         return try {
-            val socket = DatagramSocket()
             socket.soTimeout = timeoutMs
             val id = (System.nanoTime() and 0xFFFF).toInt()
             val qname = encodeName(domain)
@@ -56,9 +56,10 @@ object MiniDns {
             val resp = ByteArray(4096)
             val rp = DatagramPacket(resp, resp.size)
             socket.receive(rp)
-            socket.close()
             parseResponse(resp, rp.length)
-        } catch (_: Throwable) { null }
+        } catch (_: Throwable) { null } finally {
+            try { socket.close() } catch (_: Throwable) {}
+        }
     }
 
     fun encodeName(domain: String): ByteArray {
@@ -132,8 +133,10 @@ class DnsHijackSampler : Sampler {
             }
             queried += results.size
             val nonEmpty = results.values.filter { it.isNotEmpty() && !it.contains("CNAME") }
-            // 空结果(NXDOMAIN/超时)也要参与比对,否则会漏报"一个解析器有 A 记录、另一个 NXDOMAIN"的不一致
-            val sets = results.values.map { if (it.isEmpty()) listOf("<empty>") else it }.toSet()
+            // 超时(null,不参与比对)与 NXDOMAIN(有应答但 0 记录)区分开:
+            // 只有"确实收到应答但内容不同"才算不一致,超时不算(否则单点超时会误报劫持)
+            val answered = results.filterValues { it != null }
+            val sets = answered.values.map { if (it.isEmpty()) listOf("<nxdomain>") else it }.toSet()
             val verdict = when {
                 results.size < 2 -> "insufficient"
                 sets.size > 1 -> {
@@ -202,7 +205,7 @@ class ArpSpoofSampler : Sampler {
             quality = QualityReport(
                 level = if (changed) QualityLevel.DEGRADED else QualityLevel.EXCELLENT,
                 code = QualityLevels.CODE_OK, sampleCount = macs.size,
-                achievedRateHz = macs.size.toDouble() / (session.elapsedMs().toDouble() / 1000), nominalRateHz = 2.0,
+                achievedRateHz = if (session.elapsedMs() > 0) macs.size.toDouble() / (session.elapsedMs().toDouble() / 1000) else 0.0, nominalRateHz = 2.0,
             ))
     }
 

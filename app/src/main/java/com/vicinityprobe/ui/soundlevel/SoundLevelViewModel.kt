@@ -71,7 +71,7 @@ class SoundLevelViewModel(application: Application) : AndroidViewModel(applicati
             var peakDb = 0.0
             while (isActive && System.currentTimeMillis() - startedAt < totalSec * 1000) {
                 val read = try { rec.read(buf, 0, buf.size) } catch (_: Throwable) { -1 }
-                if (read < 0) break
+                if (read <= 0) break
                 var sumSq = 0.0
                 for (i in 0 until read) sumSq += buf[i].toDouble() * buf[i]
                 val rms = sqrt(sumSq / read)
@@ -99,7 +99,7 @@ class SoundLevelViewModel(application: Application) : AndroidViewModel(applicati
                 )
             }
             // 收尾:剩余不足 60s 的也记为一分钟
-            if (minuteEnergy.isNotEmpty() && minuteBins.size < totalSec / 60) {
+            if (minuteEnergy.isNotEmpty() && minuteBins.size < ((totalSec + 59) / 60)) {
                 minuteBins.add((10 * ln(minuteEnergy.average()) / ln(10.0)).coerceAtLeast(0.0))
             }
             val finalBins = minuteBins.toList()

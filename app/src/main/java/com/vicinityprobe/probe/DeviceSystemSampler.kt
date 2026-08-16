@@ -202,7 +202,7 @@ class SystemSampler : Sampler {
                 val t = tempFile.readText().trim().toIntOrNull() ?: return@mapNotNull null
                 val typeFile = File(zone, "type")
                 val type = if (typeFile.exists()) typeFile.readText().trim() else zone.name
-                val deg = if (t > 10000) t / 1000 else t
+                val deg = if (t > 10000) t / 1000.0 else t / 100.0
                 "$type:${deg / 10.0}°C"
             } catch (_: Throwable) { null }
         }

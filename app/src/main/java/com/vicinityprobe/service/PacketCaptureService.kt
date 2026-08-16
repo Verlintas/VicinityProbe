@@ -72,6 +72,7 @@ class PacketCaptureService : VpnService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var captureJob: Job? = null
+    private var tickJob: Job? = null
     private var tunFd: ParcelFileDescriptor? = null
 
     override fun onBind(intent: Intent?): IBinder? = super.onBind(intent)
@@ -91,6 +92,8 @@ class PacketCaptureService : VpnService() {
         // 清理上一次未正常关闭的 TUN/作业,防 fd 泄漏
         captureJob?.cancel()
         captureJob = null
+        tickJob?.cancel()
+        tickJob = null
         try { tunFd?.close() } catch (_: Throwable) {}
         tunFd = null
         val builder = this.Builder()
@@ -128,9 +131,9 @@ class PacketCaptureService : VpnService() {
                 stopSelf()
             }
         }
-        // 每秒刷新 UI 统计
-        scope.launch {
-            while (isActive) {
+        // 每秒刷新 UI 统计(仅抓包活跃时,停止时一并取消)
+        tickJob = scope.launch {
+            while (isActive && captureJob?.isActive == true) {
                 CaptureController.tick()
                 delay(1000)
             }
@@ -140,6 +143,8 @@ class PacketCaptureService : VpnService() {
     private fun stopCapture() {
         captureJob?.cancel()
         captureJob = null
+        tickJob?.cancel()
+        tickJob = null
         try { tunFd?.close() } catch (_: Throwable) {}
         tunFd = null
         CaptureController.finalizeCapture()
@@ -172,6 +177,7 @@ class PacketCaptureService : VpnService() {
 
     override fun onDestroy() {
         captureJob?.cancel()
+        tickJob?.cancel()
         try { tunFd?.close() } catch (_: Throwable) {}
         super.onDestroy()
     }
@@ -371,6 +377,7 @@ object CaptureController {
     }
 
     private fun parseIpv6(buf: ByteArray, n: Int) {
+        if (n < 40) return
         val next = buf[6].toInt() and 0xFF
         val src = ipv6(buf, 8)
         val dst = ipv6(buf, 24)
@@ -524,13 +531,6 @@ object CaptureController {
                 }
                 return
             }
-        }
-        // 简单方式:扫描 payload 中可打印 ASCII 域名段(长度 4..63, 字母数字-.)
-        val text = String(payload, Charsets.ISO_8859_1)
-        val m = SNI_REGEX.find(text, 40)
-        val name = m?.value
-        if (name != null && name.contains('.') && !name.contains(" ") && name.length > 3 && name.length < 64) {
-            domains[name] = (domains[name] ?: 0) + 1
         }
     }
 

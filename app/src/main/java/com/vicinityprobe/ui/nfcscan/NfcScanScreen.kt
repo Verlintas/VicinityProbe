@@ -67,18 +67,21 @@ fun NfcScanScreen(nav: NavController) {
     val activity = context as? Activity
     DisposableEffect(Unit) {
         val adapter = NfcAdapter.getDefaultAdapter(context)
-        adapter?.enableReaderMode(
-            activity!!,
-            { tagIntent ->
-                vm.onTagDiscovered(tagIntent)
-            },
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
-                NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V or
-                NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK or NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
-            null,
-        )
+        val act = activity
+        if (adapter != null && act != null) {
+            adapter.enableReaderMode(
+                act,
+                { tagIntent ->
+                    vm.onTagDiscovered(tagIntent)
+                },
+                NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
+                    NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V or
+                    NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK or NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
+                null,
+            )
+        }
         onDispose {
-            adapter?.disableReaderMode(activity!!)
+            if (adapter != null && act != null) adapter.disableReaderMode(act)
         }
     }
 

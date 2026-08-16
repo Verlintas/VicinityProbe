@@ -134,7 +134,7 @@ class WifiRttSampler : Sampler {
             override fun onRangingFailure(status: Int) { finished = true }
             override fun onRangingResults(resultsList: List<RangingResult>) {
                 resultsList.forEach { r ->
-                    val ssid = r.macAddress?.let { mac -> aps.firstOrNull { it.BSSID == mac.toString() }?.SSID } ?: "?"
+                    val ssid = r.macAddress?.let { mac -> aps.firstOrNull { it.BSSID.equals(mac.toString(), ignoreCase = true) }?.SSID } ?: "?"
                     results[ssid] = r
                 }
                 finished = true

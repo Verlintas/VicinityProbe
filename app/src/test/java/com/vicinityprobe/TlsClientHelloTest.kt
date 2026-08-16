@@ -74,11 +74,11 @@ class TlsClientHelloTest {
     }
 
     @Test
-    fun `JA3指纹_无扩展_仅含密码套件`() {
+    fun `JA3指纹_无扩展_仅含密码套件_无尾逗号`() {
         val ch = buildClientHello(ciphers = intArrayOf(0x1301), sni = null, extraExtensions = emptyList())
         val fp = TlsClientHello.ja3Fingerprint(ch)
         assertNotNull(fp)
-        assertEquals("0303,1301,", fp)
+        assertEquals("0303,1301", fp)
     }
 
     @Test

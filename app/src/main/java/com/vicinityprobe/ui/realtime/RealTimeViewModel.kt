@@ -327,12 +327,12 @@ class RealTimeViewModel(application: Application) : AndroidViewModel(application
                 val want = fftSize - fill
                 val read = try { rec.read(buf, fill, want) } catch (_: Throwable) { -1 }
                 if (read < 0) break
-                fill += read
-                if (read == 0 && fill == 0) {
+                if (read == 0) {
                     // 麦克风忙/出错:休眠退避,避免 100% CPU 空转
                     try { Thread.sleep(20) } catch (_: InterruptedException) { break }
                     continue
                 }
+                fill += read
                 if (fill < fftSize) continue
                 fill = 0
                 val samples = DoubleArray(fftSize) { buf[it] / 32767.0 }

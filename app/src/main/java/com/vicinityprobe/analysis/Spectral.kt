@@ -105,6 +105,7 @@ object Fft {
     /** 功率谱密度(单边):输入时域样本(采样率 fsHz),返回 (freq[], power[]) */
     fun powerSpectrum(samples: DoubleArray, fsHz: Double): Pair<DoubleArray, DoubleArray> {
         val n = samples.size
+        if (n < 2 || n and (n - 1) != 0) throw IllegalArgumentException("长度必须为 2 的幂且 >= 2")
         val re = samples.copyOf()
         val im = DoubleArray(n)
         // Hann 窗,消除频谱泄漏
@@ -281,8 +282,10 @@ object SpectralAnalysis {
             val target = f0 * order
             if (target > freq.last()) break
             val idx = ((target - freq.first()) / df).toInt().coerceIn(0, freq.size - 1)
-            val searchFrom = (idx - 1).coerceAtLeast(0)
-            val searchTo = (idx + 1).coerceAtMost(freq.size - 1)
+            // 搜索窗 ±2% 目标频率(换算成 bin 数),防高次谐波滑出窗口
+            val win = kotlin.math.ceil(target * 0.02 / df).toInt().coerceAtLeast(1)
+            val searchFrom = (idx - win).coerceAtLeast(0)
+            val searchTo = (idx + win).coerceAtMost(freq.size - 1)
             var bestI = searchFrom
             for (i in searchFrom..searchTo) if (power[i] > power[bestI]) bestI = i
             // 按幅度比(power 开方)判断显著度
