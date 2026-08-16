@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -393,6 +394,20 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Hub, contentDescription = null)
                         Text(t(L("网络矩阵", "Net matrix")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.NFCSCAN) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Nfc, contentDescription = null)
+                        Text(t(L("NFC 分析", "NFC analyzer")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.PORTSCAN) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                        Text(t(L("端口扫描", "Port scan")))
                     }
                 }
             }

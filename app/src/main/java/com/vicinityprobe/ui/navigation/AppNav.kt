@@ -51,6 +51,7 @@ import com.vicinityprobe.ui.gpstrack.GpsTrackScreen
 import com.vicinityprobe.ui.sensorrec.SensorRecorderScreen
 import com.vicinityprobe.ui.batterylog.BatteryLoggerScreen
 import com.vicinityprobe.ui.netmatrix.NetMatrixScreen
+import com.vicinityprobe.ui.nfcscan.NfcScanScreen
 
 object Routes {
     const val HOME = "home"
@@ -77,6 +78,7 @@ object Routes {
     const val SENSORREC = "sensorrec"
     const val BATTERYLOG = "batterylog"
     const val NETMATRIX = "netmatrix"
+    const val NFCSCAN = "nfcscan"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -128,5 +130,6 @@ fun AppNav() {
         composable(Routes.SENSORREC) { SensorRecorderScreen(nav) }
         composable(Routes.BATTERYLOG) { BatteryLoggerScreen(nav) }
         composable(Routes.NETMATRIX) { NetMatrixScreen(nav) }
+        composable(Routes.NFCSCAN) { NfcScanScreen(nav) }
     }
 }
