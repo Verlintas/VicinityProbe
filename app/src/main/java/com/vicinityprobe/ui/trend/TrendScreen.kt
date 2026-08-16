@@ -27,9 +27,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -113,6 +116,11 @@ fun TrendScreen(nav: NavController) {
     var interval by rememberSaveable { mutableStateOf(10L) }
     val monitoring by vm.monitoring.collectAsStateWithLifecycle()
 
+    // AI 趋势解读(感知版)
+    val aiVm: com.vicinityprobe.ui.ai.AiViewModel = viewModel()
+    val aiState by aiVm.state.collectAsStateWithLifecycle()
+    val aiConfigured = com.vicinityprobe.ai.AiConfigStore.configured(context)
+
     LaunchedEffect(Unit) { vm.refresh() }
 
     Scaffold(
@@ -151,6 +159,52 @@ fun TrendScreen(nav: NavController) {
                                 onClick = { vm.stopMonitoring() },
                                 enabled = monitoring,
                             ) { Text(t(L("停止", "Stop"))) }
+                        }
+                        // AI 趋势解读(感知版)
+                        if (aiConfigured) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(
+                                    onClick = {
+                                        vm.loadRecentReports(8) { reports ->
+                                            if (reports.size >= 2) aiVm.analyzeTrend(reports)
+                                        }
+                                    },
+                                    enabled = !aiState.running,
+                                ) {
+                                    Icon(Icons.Filled.AutoAwesome, contentDescription = null)
+                                    Text(if (aiState.running) t(L("解读中…", "Analyzing…")) else t(L("AI 趋势解读", "AI trend")))
+                                }
+                                if (aiState.running) {
+                                    androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                }
+                            }
+                            aiState.error?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            }
+                            aiState.result?.let { res ->
+                                if (res.parsed) {
+                                    OutlinedCard(Modifier.fillMaxWidth()) {
+                                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(t(L("AI 趋势解读", "AI trend interpretation")), style = MaterialTheme.typography.titleSmall)
+                                            if (res.summary.isNotBlank()) Text(res.summary, style = MaterialTheme.typography.bodyMedium)
+                                            res.trends.forEach { tr ->
+                                                Text(
+                                                    "• ${tr.metric}: ${tr.direction} — ${tr.detail}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            res.risks.forEach { rk ->
+                                                Text("⚠ ${rk.risk} (${rk.level})" + if (rk.suggestion.isNotBlank()) " → ${rk.suggestion}" else "", style = MaterialTheme.typography.bodySmall)
+                                            }
+                                            res.recommendations.forEach { rec ->
+                                                Text("→ $rec", style = MaterialTheme.typography.bodySmall)
+                                            }
+                                        }
+                                    }
+                                } else if (aiState.raw != null) {
+                                    Text(aiState.raw!!, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
                         }
                     }
                 }

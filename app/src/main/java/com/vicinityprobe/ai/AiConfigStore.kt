@@ -35,6 +35,7 @@ object AiConfigStore {
         val sanitize: Boolean = true,
         val temperature: Double = 0.3,
         val maxTokens: Int = 2048,
+        val customPrompt: String = "",
     )
 
     fun load(context: Context): Config {
@@ -46,6 +47,7 @@ object AiConfigStore {
             sanitize = p.getBoolean("sanitize", true),
             temperature = p.getFloat("temperature", 0.3f).toDouble(),
             maxTokens = p.getInt("maxTokens", 2048),
+            customPrompt = p.getString("customPrompt", "") ?: "",
         )
     }
 
@@ -58,6 +60,7 @@ object AiConfigStore {
             .putBoolean("sanitize", config.sanitize)
             .putFloat("temperature", config.temperature.toFloat())
             .putInt("maxTokens", config.maxTokens)
+            .putString("customPrompt", config.customPrompt)
             .apply()
     }
 

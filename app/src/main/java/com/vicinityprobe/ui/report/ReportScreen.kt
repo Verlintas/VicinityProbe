@@ -22,6 +22,7 @@
 package com.vicinityprobe.ui.report
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -332,13 +333,15 @@ private fun SpectrumBlock(s: SpectrumResult, lang: String) {
 
 private fun tb(s: String, lang: String): String = trBilingual(s, lang)
 
-/** AI 深度分析卡片(感知版) */
+/** AI 深度分析卡片(感知版):结构化渲染 + 缓存回看 */
 @Composable
 private fun AiAnalysisCard(r: MeasurementReport, lang: String, onShare: (String) -> Unit) {
     val vm: com.vicinityprobe.ui.ai.AiViewModel = viewModel()
     val aiState by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val t = { l: L -> if (lang.startsWith("zh")) l.zh else l.en }
+
+    LaunchedEffect(r.id) { vm.loadCached(r.id) }
 
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -367,15 +370,91 @@ private fun AiAnalysisCard(r: MeasurementReport, lang: String, onShare: (String)
             aiState.error?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            aiState.result?.let { result ->
-                Text(result, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                TextButton(onClick = { onShare(result) }) {
+            val result = aiState.result
+            if (result != null && result.parsed) {
+                if (aiState.cached) {
+                    Text(
+                        t(L("上次分析结果(点击重新分析更新)", "Previous analysis (tap Analyze to refresh)")),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // 总体结论
+                if (result.summary.isNotBlank()) {
+                    Text(result.summary, style = MaterialTheme.typography.bodyMedium)
+                }
+                // 发现项
+                if (result.findings.isNotEmpty()) {
+                    Text(tb("发现|Findings", lang), style = MaterialTheme.typography.titleSmall)
+                    result.findings.sortedByDescending { com.vicinityprobe.ai.AiResultParser.severityRank(it.severity) }.forEach { f ->
+                        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Canvas(Modifier.padding(top = 6.dp).size(10.dp)) {
+                                drawCircle(severityColor(f.severity))
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(f.item.ifBlank { f.severity }, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                if (f.detail.isNotBlank()) Text(f.detail, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+                // 风险
+                if (result.risks.isNotEmpty()) {
+                    Text(tb("风险|Risks", lang), style = MaterialTheme.typography.titleSmall)
+                    result.risks.sortedByDescending { com.vicinityprobe.ai.AiResultParser.riskRank(it.level) }.forEach { rk ->
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(riskBadge(rk.level), style = MaterialTheme.typography.labelSmall, color = riskColor(rk.level), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                    Text(rk.risk, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                if (rk.suggestion.isNotBlank()) {
+                                    Text("→ " + rk.suggestion, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+                // 建议
+                if (result.recommendations.isNotEmpty()) {
+                    Text(tb("行动建议|Recommendations", lang), style = MaterialTheme.typography.titleSmall)
+                    result.recommendations.forEach { rec ->
+                        Text("• " + rec, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            } else if (aiState.raw != null) {
+                // 解析失败:降级纯文本
+                Text(aiState.raw!!, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            }
+            if (aiState.raw != null) {
+                TextButton(onClick = { onShare(aiState.raw!!) }) {
                     Icon(Icons.Filled.Share, contentDescription = null)
                     Text(tb("分享分析|Share analysis", lang))
                 }
             }
         }
     }
+}
+
+private fun severityColor(s: String): Color = when (s.lowercase()) {
+    "high" -> Color(0xFFC62828)
+    "medium" -> Color(0xFFF9A825)
+    "low" -> Color(0xFF1565C0)
+    else -> Color(0xFF546E7A)
+}
+
+private fun riskColor(s: String): Color = when (s.lowercase()) {
+    "high" -> Color(0xFFC62828)
+    "medium" -> Color(0xFFF9A825)
+    "low" -> Color(0xFF2E7D32)
+    else -> Color(0xFF546E7A)
+}
+
+private fun riskBadge(s: String): String = when (s.lowercase()) {
+    "high" -> "HIGH"
+    "medium" -> "MEDIUM"
+    "low" -> "LOW"
+    else -> s.uppercase()
 }
 
 @Composable

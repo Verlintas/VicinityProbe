@@ -67,6 +67,9 @@ fun AiSettingsScreen(nav: NavController) {
     var apiKey by remember { mutableStateOf(initial.apiKey) }
     var model by remember { mutableStateOf(initial.model) }
     var sanitize by remember { mutableStateOf(initial.sanitize) }
+    var temperature by remember { mutableStateOf(initial.temperature) }
+    var maxTokens by remember { mutableStateOf(initial.maxTokens) }
+    var customPrompt by remember { mutableStateOf(initial.customPrompt) }
     var testResult by remember { mutableStateOf<String?>(null) }
     var testing by remember { mutableStateOf(false) }
     var probing by remember { mutableStateOf(false) }
@@ -80,6 +83,7 @@ fun AiSettingsScreen(nav: NavController) {
         vm.saveConfig(
             AiConfigStore.Config(
                 baseUrl = baseUrl, apiKey = apiKey, model = model, sanitize = sanitize,
+                temperature = temperature, maxTokens = maxTokens, customPrompt = customPrompt,
             ),
         )
         testResult = null
@@ -151,6 +155,34 @@ fun AiSettingsScreen(nav: NavController) {
                         Text(t(L("发送前脱敏(移除位置/MAC/SSID 等)", "Sanitize before sending (strip location/MAC/SSID)")), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         Switch(checked = sanitize, onCheckedChange = { sanitize = it })
                     }
+                }
+            }
+
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(t(L("高级设置", "Advanced")), style = MaterialTheme.typography.titleSmall)
+                    Text(t(L("温度", "Temperature")), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.material3.Slider(
+                        value = temperature.toFloat(),
+                        onValueChange = { temperature = it.toDouble() },
+                        valueRange = 0f..1.5f,
+                    )
+                    Text(String.format("%.1f (%.0f)", temperature, temperature * 100) + " — " + t(L("低=严谨 高=发散", "low=precise  high=creative")), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t(L("最大输出 token", "Max tokens")), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.material3.Slider(
+                        value = maxTokens.toFloat(),
+                        onValueChange = { maxTokens = it.toInt() },
+                        valueRange = 512f..8192f,
+                        steps = 14,
+                    )
+                    Text("$maxTokens", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t(L("自定义系统提示词(留空用默认)", "Custom system prompt (blank = default)")), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(
+                        value = customPrompt, onValueChange = { customPrompt = it },
+                        label = { Text("System prompt") },
+                        minLines = 2, maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 

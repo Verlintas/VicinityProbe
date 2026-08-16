@@ -72,6 +72,16 @@ class TrendViewModel(application: Application) : AndroidViewModel(application) {
         val points: Int,
     )
 
+    /** 加载最近 N 份完整报告(供 AI 趋势解读) */
+    fun loadRecentReports(n: Int = 8, onLoaded: (List<com.vicinityprobe.model.domain.MeasurementReport>) -> Unit) {
+        viewModelScope.launch {
+            val reports = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                _items.value.sortedByDescending { it.createdAt }.take(n).mapNotNull { history.load(it.id) }
+            }
+            onLoaded(reports)
+        }
+    }
+
     /** 对历史序列做最小二乘趋势推断(斜率/拟合优度/显著性) */
     fun inferTrend(channel: (ReportMeta) -> Double): TrendInference? {
         val sorted = _items.value.sortedBy { it.createdAt }
