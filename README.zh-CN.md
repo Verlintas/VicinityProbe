@@ -23,7 +23,10 @@
 - **免 root 抓包**(VPNService):协议统计(TCP/UDP/ICMP)、连接流表(五元组/字节/状态)、DNS 查询域名、TLS SNI 提取、HTTP 明文请求解析 —— 可导出**标准 pcap 文件**,直接用 Wireshark 打开分析
 - **局域网 Web 控制台**:内置 HTTP 服务器 —— 电脑浏览器看全部报告、下载原始 CSV 与 pcap、实时抓包统计、**远程触发扫描**(仅限局域网)
 - **实时监测**:传感器实时示波器(加速度/陀螺/磁力/光照/温度/气压/噪音)、音频**频谱瀑布图**(FFT)、阈值告警通知(噪音/温度/光照)
+- **传感器 RAW 录制器**:最高采样率录制加速度/陀螺/磁力/旋转矢量/气压原始流到 CSV,带实时多通道波形与采样率计数
 - **传感器标定向导**:磁力计 8 字标定(硬铁偏移)、加速度计重力基准、陀螺仪零偏 —— 输出可分享的校准参数报告
+- **NFC 卡片分析器**:读卡模式识别 ISO 14443A/B、ISO 15693、FeliCa → UID/ATQA/SAK、Mifare Classic/Ultralight/NTAG/DESFire 类型识别、**Mifare 默认密钥安全审计**(KeyA+KeyB 逐扇区、未锁扇区完整转储)、NDEF 解析、**NDEF 写入器**、风险评级
+- **HCE 卡模拟器**:HostApduService(AID F0010203040506),测试自己拥有的读卡器
 - **安全审计引擎**:聚合全部安全探测(端口/TLS/证书/HTTP/WiFi/SMB/MQTT/SSH)→ 分级(INFO→CRITICAL)审计报告,应用内展示并可分享 Markdown
 - **协议深探**:TLS 协商密码套件/协议版本/ALPN 提取、SSH 版本 banner、手写 SMB2 NEGOTIATE(dialect + 签名模式)
 - **数据包发送器**:自定义 UDP/TCP 十六进制载荷,响应 HEX/ASCII 回显 —— 用于对授权目标的协议测试
