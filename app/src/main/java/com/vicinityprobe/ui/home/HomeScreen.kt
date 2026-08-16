@@ -52,6 +52,9 @@ import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.SatelliteAlt
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -345,6 +348,34 @@ fun HomeScreen(nav: NavController) {
                     Column(Modifier.padding(12.dp)) {
                         Icon(Icons.Filled.Bluetooth, contentDescription = null)
                         Text(t(L("蓝牙分析", "BT analysis")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.PINGMONITOR) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Leaderboard, contentDescription = null)
+                        Text(t(L("Ping 监视", "Ping monitor")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.SPEEDTEST) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Speed, contentDescription = null)
+                        Text(t(L("网络测速", "Speed test")))
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedCard(onClick = { nav.navigate(Routes.GPSTRACK) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Route, contentDescription = null)
+                        Text(t(L("轨迹记录", "GPS track")))
+                    }
+                }
+                OutlinedCard(onClick = { nav.navigate(Routes.PORTSCAN) }, modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                        Text(t(L("端口扫描", "Port scan")))
                     }
                 }
             }

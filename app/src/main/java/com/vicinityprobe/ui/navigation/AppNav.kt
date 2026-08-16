@@ -45,6 +45,9 @@ import com.vicinityprobe.ui.trend.TrendScreen
 import com.vicinityprobe.ui.web.WebConsoleScreen
 import com.vicinityprobe.ui.wifimap.WifiMapScreen
 import com.vicinityprobe.ui.btanalysis.BtAnalysisScreen
+import com.vicinityprobe.ui.pingmonitor.PingMonitorScreen
+import com.vicinityprobe.ui.speedtest.SpeedTestScreen
+import com.vicinityprobe.ui.gpstrack.GpsTrackScreen
 
 object Routes {
     const val HOME = "home"
@@ -65,6 +68,9 @@ object Routes {
     const val WIFIMAP = "wifimap"
     const val GNSS = "gnss"
     const val BTANALYSIS = "btanalysis"
+    const val PINGMONITOR = "pingmonitor"
+    const val SPEEDTEST = "speedtest"
+    const val GPSTRACK = "gpstrack"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -110,5 +116,8 @@ fun AppNav() {
         composable(Routes.WIFIMAP) { WifiMapScreen(nav) }
         composable(Routes.GNSS) { GnssScreen(nav) }
         composable(Routes.BTANALYSIS) { BtAnalysisScreen(nav) }
+        composable(Routes.PINGMONITOR) { PingMonitorScreen(nav) }
+        composable(Routes.SPEEDTEST) { SpeedTestScreen(nav) }
+        composable(Routes.GPSTRACK) { GpsTrackScreen(nav) }
     }
 }
