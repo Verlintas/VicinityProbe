@@ -54,6 +54,7 @@ import com.vicinityprobe.ui.netmatrix.NetMatrixScreen
 import com.vicinityprobe.ui.nfcscan.NfcScanScreen
 import com.vicinityprobe.ui.hce.HceScreen
 import com.vicinityprobe.ui.ai.AiSettingsScreen
+import com.vicinityprobe.ui.healthcheck.HealthCheckScreen
 
 object Routes {
     const val HOME = "home"
@@ -83,6 +84,7 @@ object Routes {
     const val NFCSCAN = "nfcscan"
     const val HCE = "hce"
     const val AISETTINGS = "aisettings"
+    const val HEALTHCHECK = "healthcheck"
 
     fun report(reportId: String) = "report/$reportId"
     fun scan(ids: List<String>, mode: String, durationMs: Long) =
@@ -137,5 +139,6 @@ fun AppNav() {
         composable(Routes.NFCSCAN) { NfcScanScreen(nav) }
         composable(Routes.HCE) { HceScreen(nav) }
         composable(Routes.AISETTINGS) { AiSettingsScreen(nav) }
+        composable(Routes.HEALTHCHECK) { HealthCheckScreen(nav) }
     }
 }

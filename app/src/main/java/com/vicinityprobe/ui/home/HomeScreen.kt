@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -158,6 +159,22 @@ fun HomeScreen(nav: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // 环境体检:一键好玩入口
+            OutlinedCard(
+                onClick = { nav.navigate(Routes.HEALTHCHECK) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Icons.Filled.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Column(Modifier.weight(1f)) {
+                        Text(t(L("环境体检", "Environment checkup")), style = MaterialTheme.typography.titleMedium)
+                        Text(t(L("一键跑全部合规探测,AI 给环境打分", "One tap — all compliant probes, AI scores your environment")), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text("→", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
             OutlinedCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(t(L("探测模式", "Scan mode")), style = MaterialTheme.typography.titleMedium)
