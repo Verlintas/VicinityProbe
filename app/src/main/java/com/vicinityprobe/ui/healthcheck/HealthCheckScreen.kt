@@ -91,7 +91,7 @@ fun HealthCheckScreen(nav: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-                HealthPhase.DONE -> DoneView(st, t, vm, lang)
+                HealthPhase.DONE -> DoneView(st, t, vm, lang) { id -> nav.navigate(com.vicinityprobe.ui.navigation.Routes.report(id)) }
                 HealthPhase.ERROR -> {
                     Text(st.error ?: "?", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                     Button(onClick = { vm.reset() }) { Text(t(L("重试", "Retry"))) }
@@ -150,7 +150,7 @@ private fun ScanningView(st: HealthCheckState, t: (L) -> String) {
 }
 
 @Composable
-private fun DoneView(st: HealthCheckState, t: (L) -> String, vm: HealthCheckViewModel, lang: String) {
+private fun DoneView(st: HealthCheckState, t: (L) -> String, vm: HealthCheckViewModel, lang: String, onOpenReport: (String) -> Unit) {
     val local = st.localScore
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         if (local != null) {
@@ -242,7 +242,7 @@ private fun DoneView(st: HealthCheckState, t: (L) -> String, vm: HealthCheckView
             }
             st.report?.let { r ->
                 OutlinedButton(
-                    onClick = { nav.navigate(com.vicinityprobe.ui.navigation.Routes.report(r.id)) },
+                    onClick = { onOpenReport(r.id) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(t(L("查看完整报告", "Full report")))
