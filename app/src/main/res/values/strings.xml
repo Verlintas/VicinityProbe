@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">VicinityProbe</string>
     <string name="app_desc">Probe every sensor &amp; module of your phone and generate an environment data report</string>
+
+    <string name="hce_service_description">VicinityProbe HCE card emulation (APDU test)</string>
+    <string name="hce_aid_group_description">APDU test application</string>
+
 </resources>

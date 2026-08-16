@@ -22,11 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,6 +36,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -148,17 +153,38 @@ fun NfcScanScreen(nav: NavController) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(t(L("Mifare Classic", "Mifare Classic")), style = MaterialTheme.typography.titleSmall)
                             KeyValueRow(t(L("扇区数", "Sectors")), "${report.mifareSectors}")
-                            KeyValueRow(t(L("默认密钥扇区", "Default-key sectors")), "${report.unlockedSectors}", primary = report.defaultKeyUsed)
+                            KeyValueRow(t(L("默认密钥扇区", "Default-key sectors")), "${report.unlockedSectors}" + if (report.keyBUnlocked) " (KeyB!)" else "", primary = report.defaultKeyUsed)
                             if (report.readSector0 != "?") {
                                 KeyValueRow(t(L("块 0 (UID区)", "Block 0")), report.readSector0, primary = true)
                             }
                             Text(
                                 if (report.defaultKeyUsed)
-                                    trBilingual("⚠ 检测到默认密钥:该卡可被克隆/重放|Default keys detected: card is cloneable/replayable", lang)
+                                    trBilingual("⚠ 检测到默认密钥:该卡可被完整读取/克隆|Default keys detected: card is fully readable/cloneable", lang)
                                 else trBilingual("默认密钥未通过:扇区 0 密钥已修改|Default keys rejected: sector 0 key is modified", lang),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (report.defaultKeyUsed) Color(0xFFC62828) else Color(0xFF2E7D32),
                             )
+                        }
+                    }
+                }
+                // 完整转储
+                if (report.dumpLines.isNotEmpty()) {
+                    OutlinedCard(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(t(L("完整转储 (默认密钥解锁的扇区)", "Full dump (default-key sectors)")), style = MaterialTheme.typography.titleSmall)
+                            report.dumpLines.take(40).forEach {
+                                Text(it, style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            }
+                            if (report.dumpLines.size > 40) {
+                                Text("… ${report.dumpLines.size - 40} " + t(L("行更多", "more lines")), style = MaterialTheme.typography.labelSmall)
+                            }
+                            OutlinedButton(onClick = {
+                                val f = java.io.File(context.cacheDir, "nfc_dump_${System.currentTimeMillis()}.txt")
+                                f.writeText(vm.exportDump())
+                                com.vicinityprobe.report.ReportExporter.shareFile(context, f, "text/plain")
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Filled.Share, contentDescription = null); Text(t(L("导出转储", "Export dump")))
+                            }
                         }
                     }
                 }
@@ -179,6 +205,40 @@ fun NfcScanScreen(nav: NavController) {
                             report.ndefRecords.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
                             if (report.ndefSize > 0) KeyValueRow(t(L("容量", "Capacity")), "${report.ndefSize} B")
                         }
+                    }
+                }
+                // NDEF 写入器(仅限自己的测试标签)
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(t(L("NDEF 写入", "NDEF writer")), style = MaterialTheme.typography.titleSmall)
+                        var writeText by remember { mutableStateOf("") }
+                        androidx.compose.material3.OutlinedTextField(
+                            value = writeText,
+                            onValueChange = { writeText = it },
+                            singleLine = true,
+                            label = { Text(t(L("要写入的文本", "Text to write")) + " (NDEF)") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Button(
+                            onClick = {
+                                haptics.confirm()
+                                if (writeText.isNotBlank()) vm.writeNdefText(writeText)
+                            },
+                            enabled = writeText.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(t(L("写入标签", "Write to tag"))) }
+                        report.writeResult?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (it.startsWith("OK")) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        Text(
+                            t(L("仅对你有权写入的测试标签使用", "Use only on test tags you own")),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = com.vicinityprobe.ui.components.WarningColor,
+                        )
                     }
                 }
                 // 安全发现

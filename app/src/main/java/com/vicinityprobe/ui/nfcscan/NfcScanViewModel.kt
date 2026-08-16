@@ -44,8 +44,10 @@ data class NfcCardReport(
     // Mifare Classic
     val mifareSectors: Int = 0,
     val defaultKeyUsed: Boolean = false,
+    val keyBUnlocked: Boolean = false,
     val unlockedSectors: Int = 0,
     val readSector0: String = "?",
+    val dumpLines: List<String> = emptyList(),   // "sN.bb: hex" 完整转储
     // Ultralight/NTAG
     val ulPages: List<String> = emptyList(),
     // NDEF
@@ -53,6 +55,8 @@ data class NfcCardReport(
     val ndefRecords: List<String> = emptyList(),
     val ndefWritable: Boolean = false,
     val ndefSize: Int = 0,
+    // 写入
+    val writeResult: String? = null,
     // 安全评估
     val riskLevel: String = "INFO",   // INFO / LOW / HIGH
     val findings: List<String> = emptyList(),
@@ -76,8 +80,11 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         byteArrayOf(0xAA.toByte(), 0xBB.toByte(), 0xCC.toByte(), 0xDD.toByte(), 0xEE.toByte(), 0xFF.toByte()),
     )
 
+    private var lastTag: Tag? = null
+
     /** 处理新发现的标签(Reader Mode 回调) */
     fun onTagDiscovered(tag: Tag) {
+        lastTag = tag
         analyze(tag, null)
     }
 
@@ -127,29 +134,50 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
                 nfcA.close()            }
         }
 
-        // Mifare Classic:默认密钥检测
+        // Mifare Classic:双密钥(KeyA/KeyB)默认密钥检测 + 完整扇区转储
+        var keyBUnlocked = false
+        val dumpLines = ArrayList<String>()
         runCatching {
             MifareClassic.get(tag)?.let { mfc ->
                 mfc.connect()
                 mifareSectors = mfc.sectorCount
-                // 对每个扇区试默认密钥(仅认证,不读取数据)
                 for (sector in 0 until minOf(mfc.sectorCount, 40)) {
-                    var authed = false
+                    // KeyA 尝试
+                    var authedA = false
                     for (key in defaultKeys) {
                         try {
-                            if (mfc.authenticateSectorWithKeyA(sector, key)) {
-                                authed = true
-                                defaultKeyUsed = true
-                                unlockedSectors++
-                                break
+                            if (mfc.authenticateSectorWithKeyA(sector, key)) { authedA = true; break }
+                        } catch (_: Throwable) {}
+                    }
+                    var authedB = false
+                    if (!authedA) {
+                        for (key in defaultKeys) {
+                            try {
+                                if (mfc.authenticateSectorWithKeyB(sector, key)) { authedB = true; keyBUnlocked = true; break }
+                            } catch (_: Throwable) {}
+                        }
+                    }
+                    val unlocked = authedA || authedB
+                    if (unlocked) {
+                        defaultKeyUsed = true
+                        unlockedSectors++
+                    }
+                    if (!unlocked && sector == 0) {
+                        findings.add("扇区 0 无法用默认密钥认证(密钥已修改)|Sector 0 not authenticated with default keys (key changed)")
+                    }
+                    // 已解锁扇区:读取全部数据块
+                    if (unlocked) {
+                        try {
+                            val blocks = mfc.getBlockCountInSector(sector)
+                            val firstBlock = mfc.sectorToBlock(sector)
+                            for (b in 0 until blocks) {
+                                val data = mfc.readBlock(firstBlock + b)
+                                dumpLines.add("s${sector}.${b}: " + data.joinToString("") { String.format("%02X", it) })
                             }
                         } catch (_: Throwable) {}
                     }
-                    if (!authed && sector == 0) {
-                        findings.add("扇区 0 无法用默认密钥认证(密钥已修改)|Sector 0 not authenticated with default keys (key changed)")
-                    }
                 }
-                // 读块 0(UID + BCC + SAK + ATQA 制造信息)
+                // 块 0(UID + BCC + SAK + ATQA 制造信息)
                 if (unlockedSectors > 0) {
                     try {
                         val block = mfc.readBlock(0)
@@ -225,6 +253,7 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         if (ndefWritable) findings.add("NDEF 区可写(可被篡改)|NDEF writable (tamperable)")
         val risk = when {
             defaultKeyUsed && unlockedSectors >= 5 -> "HIGH"
+            keyBUnlocked -> "HIGH"
             defaultKeyUsed || ndefWritable -> "LOW"
             else -> "INFO"
         }
@@ -232,7 +261,9 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         return r.copy(
             atqa = atqa, sak = sak, historicalBytes = historical, maxTransceive = maxTrans,
             mifareSectors = mifareSectors, defaultKeyUsed = defaultKeyUsed,
+            keyBUnlocked = keyBUnlocked,
             unlockedSectors = unlockedSectors, readSector0 = readSector0,
+            dumpLines = dumpLines,
             ulPages = ulPages, ndefPresent = ndefPresent, ndefRecords = ndefRecords,
             ndefWritable = ndefWritable, ndefSize = ndefSize,
             cardType = cardType, riskLevel = risk, findings = findings,
@@ -270,6 +301,54 @@ class NfcScanViewModel(application: Application) : AndroidViewModel(application)
         } catch (_: Throwable) {
             "记录解析失败|unparsable record"
         }
+    }
+
+    /** 向标签写入文本 NDEF(仅限自己的测试标签) */
+    fun writeNdefText(text: String) {
+        val tag = lastTag ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = try {
+                val msg = NdefMessage(
+                    arrayOf(NdefRecord.createTextRecord("zh", text)),
+                )
+                val ndef = Ndef.get(tag)
+                if (ndef != null) {
+                    ndef.connect()
+                    ndef.writeNdefMessage(msg)
+                    ndef.close()
+                    "OK"
+                } else {
+                    val fmt = NdefFormatable.get(tag)
+                    if (fmt != null) {
+                        fmt.connect()
+                        fmt.format(msg)
+                        fmt.close()
+                        "OK (formatted)"
+                    } else "N/A"
+                }
+            } catch (e: Exception) {
+                "ERROR: ${e.message}"
+            }
+            _state.value = _state.value.copy(writeResult = result)
+        }
+    }
+
+    /** 完整转储导出(hex + ASCII) */
+    fun exportDump(): String {
+        val r = _state.value
+        val sb = StringBuilder()
+        sb.appendLine("VicinityProbe NFC dump")
+        sb.appendLine("UID: ${r.uid}")
+        sb.appendLine("Type: ${r.cardType}")
+        sb.appendLine("ATQA: ${r.atqa}  SAK: ${r.sak}")
+        sb.appendLine("Unlocked sectors (default keys): ${r.unlockedSectors}/${r.mifareSectors}" + if (r.keyBUnlocked) " (KeyB!)" else "")
+        sb.appendLine("---")
+        r.dumpLines.forEach { sb.appendLine(it) }
+        if (r.ulPages.isNotEmpty()) {
+            sb.appendLine("--- pages ---")
+            r.ulPages.forEach { sb.appendLine(it) }
+        }
+        return sb.toString()
     }
 
     fun reset() {

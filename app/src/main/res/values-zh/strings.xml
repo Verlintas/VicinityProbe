@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">VicinityProbe</string>
     <string name="app_desc">探测手机所有传感器与模块,生成周遭环境数据报告</string>
+    <string name="hce_service_description">VicinityProbe HCE 卡模拟(APDU 测试)</string>
+    <string name="hce_aid_group_description">APDU 测试应用</string>
 </resources>

@@ -84,6 +84,19 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- HCE 卡模拟(APDU 测试,无需前台服务) -->
+        <service
+            android:name=".service.HceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apduservice" />
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
