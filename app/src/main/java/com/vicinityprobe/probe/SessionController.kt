@@ -129,7 +129,9 @@ class SessionController(
         }
         jobs.forEach { it.cancelAndJoin() }
 
-        val measurements = results.values.sortedBy { it.spec.id }
+        val measurements = results.values
+            .map { QualityEnforcer.enforce(it) }   // 空数据统一降级
+            .sortedBy { it.spec.id }
         val battery = results["battery"]?.attributes?.get("level_pct")?.toDoubleOrNull()
         MeasurementReport(
             schemaVersion = 1,
