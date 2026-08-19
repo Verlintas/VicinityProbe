@@ -41,6 +41,7 @@ data class AiTrend(
 @Serializable
 data class AiResult(
     val summary: String = "",
+    val score: Int? = null,              // 体检专用: 0-100
     val grade: String = "",              // 体检专用: A/B/C/D
     val verdict: String = "",            // 体检专用: 一句话结论
     val highlights: List<String> = emptyList(),   // 体检专用
@@ -48,9 +49,10 @@ data class AiResult(
     val findings: List<AiFinding> = emptyList(),
     val risks: List<AiRisk> = emptyList(),
     val recommendations: List<String> = emptyList(),
+    val suggestions: List<String> = emptyList(),   // 体检专用
     val trends: List<AiTrend> = emptyList(),
 ) {
-    val parsed: Boolean get() = summary.isNotEmpty() || findings.isNotEmpty() || risks.isNotEmpty() || recommendations.isNotEmpty() || trends.isNotEmpty() || grade.isNotEmpty()
+    val parsed: Boolean get() = summary.isNotEmpty() || findings.isNotEmpty() || risks.isNotEmpty() || recommendations.isNotEmpty() || trends.isNotEmpty() || grade.isNotEmpty() || suggestions.isNotEmpty() || score != null
 }
 
 object AiResultParser {

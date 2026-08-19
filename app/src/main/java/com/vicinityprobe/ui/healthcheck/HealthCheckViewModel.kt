@@ -59,13 +59,22 @@ class HealthCheckViewModel(application: Application) : AndroidViewModel(applicat
     private var job: Job? = null
     private var controller: SessionController? = null
 
-    /** 体检用探测项:排除 SECURITY 类与合规高风险项 */
+    /** 体检用探测项:排除 SECURITY 类、合规高风险项、事件传感器与 Android 受限项 */
     fun healthProbeIds(): List<String> {
         val app = getApplication<Application>()
+        // 事件传感器(摇一摇/翻转/抬腕等)在 12s 内几乎必然 0 触发,会拖垮分数
+        val eventSensors = setOf(
+            "sensor.shake", "sensor.flip", "sensor.pick_up", "sensor.tilt",
+            "sensor.significant_motion", "sensor.step_detector", "sensor.step_counter",
+            "sensor.activity", "sensor.heart_beat", "sensor.offbody",
+        )
+        // Android 10+ 应用级必受限的 /proc 项
+        val restricted = setOf("proc_net_conn", "disk_stats", "net_arp_table", "thermal")
         return CapabilityProbe.enumerate(app)
             .filter { it.status == CapabilityStatus.SUPPORTED }
             .filter { it.spec.category != Category.SECURITY }
             .filter { !it.spec.complianceRisk }
+            .filter { it.probeId !in eventSensors && it.probeId !in restricted }
             .map { it.probeId }
     }
 
@@ -80,13 +89,14 @@ class HealthCheckViewModel(application: Application) : AndroidViewModel(applicat
         _state.value = HealthCheckState(phase = HealthPhase.SCANNING)
         val controller = SessionController(app, ids.toSet(), 12_000L, "HEALTHCHECK")
         this.controller = controller
-        job = viewModelScope.launch {
-            val collectJob = viewModelScope.launch {
+        job = viewModelScope.launch(Dispatchers.IO) {
+            val collectJob = viewModelScope.launch(Dispatchers.IO) {
                 try {
                     controller.stateFlow().collect { s ->
                         _state.value = _state.value.copy(
                             phase = HealthPhase.SCANNING,
-                            progress = if (s.totalUnits > 0) s.completedUnits.toFloat() / s.totalUnits else 0f,
+                            // 进度按耗时(采样器并行跑满时长,按模块数失真)
+                            progress = if (s.durationMs > 0) (s.elapsedMs.toFloat() / s.durationMs).coerceIn(0f, 1f) else 0f,
                             scanningText = s.live.entries.firstOrNull()?.let { "${it.value.first} ${it.value.second}" } ?: "",
                         )
                     }
@@ -111,7 +121,7 @@ class HealthCheckViewModel(application: Application) : AndroidViewModel(applicat
 
 规则:
 1. 输出 JSON:{"score":0-100,"grade":"A|B|C|D","verdict":"一句话通俗结论","highlights":["做得好的方面,通俗"],"concerns":["有问题的方面,通俗"],"suggestions":["普通人可执行的改善建议"]}
-2. 评分参考:噪声(70dB+扣分)、磁场(100µT+扣分)、温度、光线、气压、测量质量
+2. 评分参考(仅依据摘要中出现的数据):磁场(100µT+)、温度、光线、气压、测量质量;若摘要无某项数据,不得猜测
 3. 语言通俗,像朋友聊天一样,别用专业术语堆砌
 4. 只依据摘要事实,不确定的写"需要复测"
                         """.trimIndent()
@@ -136,6 +146,8 @@ class HealthCheckViewModel(application: Application) : AndroidViewModel(applicat
                 } else {
                     _state.value = HealthCheckState(phase = HealthPhase.DONE, report = analyzed, localScore = local)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _state.value = HealthCheckState(phase = HealthPhase.ERROR, error = e.message ?: "扫描失败")
             }

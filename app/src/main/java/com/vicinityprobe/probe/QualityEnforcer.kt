@@ -24,7 +24,7 @@ object QualityEnforcer {
     fun isPlaceholder(v: String): Boolean {
         val t = v.trim()
         return t.isEmpty() || t == "?" || t.equals("restricted", ignoreCase = true) ||
-            t == "-1" || t == "0" || t.startsWith("N/A", ignoreCase = true) ||
+            t == "-1" || t.startsWith("N/A", ignoreCase = true) ||
             t == "null" || t == "unknown"
     }
 
@@ -44,7 +44,8 @@ object QualityEnforcer {
      * DEGRADED 且无有效数据 → FAILED。
      */
     fun enforce(m: Measurement): Measurement {
-        if (m.status != QualityLevels.CODE_OK && m.quality.level != QualityLevel.EXCELLENT) return m
+        // 只看质量等级,不信任 status(存在 GOOD+NO_DATA 的矛盾状态)
+        if (m.quality.level == QualityLevel.FAILED) return m
         if (hasValidData(m)) return m
         return when (m.quality.level) {
             QualityLevel.EXCELLENT, QualityLevel.GOOD -> m.copy(

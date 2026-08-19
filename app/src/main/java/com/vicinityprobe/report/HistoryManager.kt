@@ -48,10 +48,14 @@ data class ReportMeta(
 )
 
 class HistoryManager(private val context: Context) {
+    companion object {
+        private val CompanionLock = Any()
+    }
+
     private val dir: File get() = File(context.filesDir, "reports")
     private val indexFile: File get() = File(dir, "index.json")
-    /** 序列化 index.json 的 read-modify-write 操作,防并发丢失更新/半写 */
-    private val indexLock = Any()
+    /** 序列化 index.json 的 read-modify-write 操作;伴生级锁,防多实例并发丢失更新 */
+    private val indexLock = CompanionLock
 
     private val json = Json {
         prettyPrint = true

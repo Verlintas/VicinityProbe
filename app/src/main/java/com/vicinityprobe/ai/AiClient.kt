@@ -111,9 +111,9 @@ class AiClient(private val config: AiConfigStore.Config) {
             } catch (_: Throwable) {}
             candidates.firstOrNull { host ->
                 try {
-                    val s = java.net.Socket()
-                    s.connect(java.net.InetSocketAddress(host, 11434), 300)
-                    s.close()
+                    java.net.Socket().use { s ->
+                        s.connect(java.net.InetSocketAddress(host, 11434), 300)
+                    }
                     true
                 } catch (_: Throwable) { false }
             }?.let { "http://$it:11434/v1" }
@@ -140,8 +140,8 @@ class AiClient(private val config: AiConfigStore.Config) {
             Preset("Mistral", "https://api.mistral.ai/v1", listOf("mistral-small-latest", "mistral-medium-latest", "open-mistral-nemo")),
             Preset("OpenRouter", "https://openrouter.ai/api/v1", listOf("openai/gpt-4o-mini", "deepseek/deepseek-chat", "anthropic/claude-3.5-sonnet")),
             Preset("xAI Grok", "https://api.x.ai/v1", listOf("grok-beta", "grok-2-latest")),
-            Preset("Ollama (本地)", "http://10.0.2.2:11434/v1", listOf("llama3.2", "qwen2.5", "gemma2", "mistral")),
-            Preset("LocalAI (本地)", "http://10.0.2.2:8080/v1", listOf("gpt-4o-mini", "llama3.2")),
+            Preset("Ollama (本地)", ollamaBaseUrl(), listOf("llama3.2", "qwen2.5", "gemma2", "mistral")),
+            Preset("LocalAI (本地)", if (isEmulator()) "http://10.0.2.2:8080/v1" else "http://127.0.0.1:8080/v1", listOf("gpt-4o-mini", "llama3.2")),
         )
 
         /** 模拟器检测:模拟器上 10.0.2.2 才是宿主机 */

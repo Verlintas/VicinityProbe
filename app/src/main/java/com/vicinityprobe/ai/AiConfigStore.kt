@@ -81,17 +81,18 @@ object AiConfigStore {
         }
     }
 
-    /** 解密 */
+    /** 解密;密钥失效等失败时返回空(触发重新配置,而非返回密文当 Key 用) */
     private fun decrypt(data: String): String {
         if (data.isEmpty()) return ""
         return try {
             val raw = Base64.decode(data, Base64.NO_WRAP)
+            if (raw.size <= 12) return ""
             val key = getOrCreateKey()
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG, raw, 0, 12))
             String(cipher.doFinal(raw, 12, raw.size - 12), Charsets.UTF_8)
         } catch (_: Throwable) {
-            data
+            ""
         }
     }
 

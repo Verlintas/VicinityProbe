@@ -49,6 +49,8 @@ class AiViewModel(application: Application) : AndroidViewModel(application) {
         val f = analysisFile(reportId)
         if (!f.exists()) return
         withContextSafe {
+            // 分析进行中不覆盖 in-flight 状态
+            if (_state.value.running) return@withContextSafe
             val raw = f.readText()
             _state.value = AiAnalysisState(
                 raw = raw,
@@ -81,9 +83,11 @@ class AiViewModel(application: Application) : AndroidViewModel(application) {
                     result = AiResultParser.parse(answer),
                 )
             } catch (e: AiApiException) {
-                _state.value = AiAnalysisState(error = "AI API 错误: ${e.message}")
+                val cur = _state.value
+                _state.value = cur.copy(running = false, error = "AI API 错误: ${e.message}")
             } catch (e: Exception) {
-                _state.value = AiAnalysisState(error = "分析失败: ${e.message ?: "unknown"}")
+                val cur = _state.value
+                _state.value = cur.copy(running = false, error = "分析失败: ${e.message ?: "unknown"}")
             }
         }
     }

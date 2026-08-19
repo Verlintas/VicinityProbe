@@ -203,6 +203,7 @@ fun AiSettingsScreen(nav: NavController) {
                                 val found = AiClient(AiConfigStore.Config()).probeLocalOllama(context)
                                 if (found != null) {
                                     baseUrl = found
+                                    model = AiClient.PRESETS.first { it.name.startsWith("Ollama") }.defaultModel
                                     testResult = "✓ " + t(L("找到本地 Ollama:", "Found local Ollama:")) + " $found"
                                 } else {
                                     testResult = t(L("未发现局域网 Ollama(确认电脑已启动 Ollama 并允许局域网访问 OLLAMA_HOST=0.0.0.0)", "No local Ollama found (ensure it runs and listens on LAN: OLLAMA_HOST=0.0.0.0)"))
@@ -233,7 +234,7 @@ fun AiSettingsScreen(nav: NavController) {
                     testResult = null
                     scope.launch {
                         testResult = try {
-                            val cfg = AiConfigStore.Config(baseUrl = baseUrl, apiKey = apiKey, model = model)
+                            val cfg = AiConfigStore.Config(baseUrl = baseUrl.trim().trimEnd('/'), apiKey = apiKey, model = model)
                             val reply = AiClient(cfg).test()
                             "✓ " + t(L("连接成功:", "Connected:")) + " " + reply.take(60)
                         } catch (e: Exception) {

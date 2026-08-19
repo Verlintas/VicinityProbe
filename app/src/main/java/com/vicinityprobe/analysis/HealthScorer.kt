@@ -76,9 +76,9 @@ object HealthScorer {
     private fun noise(m: com.vicinityprobe.model.domain.Measurement?, score: Int, out: MutableList<String>, positive: Boolean = false): Int {
         val laeq = m?.attributes?.get("LAeq")?.toDoubleOrNull() ?: return 0
         return when {
-            laeq >= 85 -> { out.add("环境噪声偏高(${laeq.roundToInt()} dB),长时间暴露对听力有影响"); score - 20 }
-            laeq >= 70 -> { out.add("环境比较吵(${laeq.roundToInt()} dB),适合短时间停留"); score - 10 }
-            laeq >= 55 -> { out.add("环境略显嘈杂(${laeq.roundToInt()} dB)"); score - 4 }
+            laeq >= 85 -> { if (!positive) out.add("环境噪声偏高(${laeq.roundToInt()} dB),长时间暴露对听力有影响"); score - 20 }
+            laeq >= 70 -> { if (!positive) out.add("环境比较吵(${laeq.roundToInt()} dB),适合短时间停留"); score - 10 }
+            laeq >= 55 -> { if (!positive) out.add("环境略显嘈杂(${laeq.roundToInt()} dB)"); score - 4 }
             laeq in 35.0..54.9 -> { if (positive) out.add("环境安静舒适(${laeq.roundToInt()} dB)"); score }
             else -> { if (positive) out.add("环境非常安静(${laeq.roundToInt()} dB)"); score }
         }
@@ -87,8 +87,8 @@ object HealthScorer {
     private fun magnet(m: com.vicinityprobe.model.domain.Measurement?, score: Int, out: MutableList<String>, positive: Boolean = false): Int {
         val mag = m?.stats?.get("magnitude")?.mean ?: return 0
         return when {
-            mag > 100 -> { out.add("附近有较强磁场(${mag.roundToInt()} µT),可能来自电器或磁铁"); score - 10 }
-            mag in 65.0..100.0 -> { out.add("磁场偏强(${mag.roundToInt()} µT)"); score - 5 }
+            mag > 100 -> { if (!positive) out.add("附近有较强磁场(${mag.roundToInt()} µT),可能来自电器或磁铁"); score - 10 }
+            mag in 65.0..100.0 -> { if (!positive) out.add("磁场偏强(${mag.roundToInt()} µT)"); score - 5 }
             else -> { if (positive) out.add("磁场环境正常(${mag.roundToInt()} µT)"); score }
         }
     }
@@ -96,8 +96,8 @@ object HealthScorer {
     private fun temp(m: com.vicinityprobe.model.domain.Measurement?, score: Int, out: MutableList<String>, positive: Boolean = false): Int {
         val t = m?.stats?.get("value")?.mean ?: return 0
         return when {
-            t > 35 -> { out.add("环境偏热(${t.roundToInt()}°C),注意通风降温"); score - 8 }
-            t < 10 -> { out.add("环境偏冷(${t.roundToInt()}°C),注意保暖"); score - 5 }
+            t > 35 -> { if (!positive) out.add("环境偏热(${t.roundToInt()}°C),注意通风降温"); score - 8 }
+            t < 10 -> { if (!positive) out.add("环境偏冷(${t.roundToInt()}°C),注意保暖"); score - 5 }
             t in 18.0..26.0 -> { if (positive) out.add("温度舒适(${t.roundToInt()}°C)"); score }
             else -> { if (positive) out.add("温度尚可(${t.roundToInt()}°C)"); score }
         }
@@ -106,9 +106,9 @@ object HealthScorer {
     private fun light(m: com.vicinityprobe.model.domain.Measurement?, score: Int, out: MutableList<String>, positive: Boolean = false): Int {
         val lx = m?.stats?.get("value")?.mean ?: return 0
         return when {
-            lx < 10 -> { out.add("光线很暗(${lx.roundToInt()} lx),阅读或工作可能费眼"); score - 5 }
-            lx < 50 -> { out.add("光线偏暗(${lx.roundToInt()} lx)"); score - 2 }
-            lx > 2000 -> { out.add("光线很强(${lx.roundToInt()} lx),可能刺眼"); score - 2 }
+            lx < 10 -> { if (!positive) out.add("光线很暗(${lx.roundToInt()} lx),阅读或工作可能费眼"); score - 5 }
+            lx < 50 -> { if (!positive) out.add("光线偏暗(${lx.roundToInt()} lx)"); score - 2 }
+            lx > 2000 -> { if (!positive) out.add("光线很强(${lx.roundToInt()} lx),可能刺眼"); score - 2 }
             lx in 300.0..800.0 -> { if (positive) out.add("光线明亮舒适(${lx.roundToInt()} lx)"); score }
             else -> { if (positive) out.add("光照适宜(${lx.roundToInt()} lx)"); score }
         }
@@ -117,7 +117,7 @@ object HealthScorer {
     private fun pressure(m: com.vicinityprobe.model.domain.Measurement?, score: Int, out: MutableList<String>, positive: Boolean = false): Int {
         val p = m?.stats?.get("value")?.mean ?: return 0
         return when {
-            p < 900 || p > 1080 -> { out.add("气压异常(${p.roundToInt()} hPa),可能处于特殊环境或传感器异常"); score - 3 }
+            p < 900 || p > 1080 -> { if (!positive) out.add("气压异常(${p.roundToInt()} hPa),可能处于特殊环境或传感器异常"); score - 3 }
             else -> { if (positive) out.add("气压正常(${p.roundToInt()} hPa)"); score }
         }
     }

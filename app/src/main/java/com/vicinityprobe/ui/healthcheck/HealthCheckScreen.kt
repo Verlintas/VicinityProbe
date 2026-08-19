@@ -203,7 +203,14 @@ private fun DoneView(st: HealthCheckState, t: (L) -> String, vm: HealthCheckView
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(t(L("AI 体检师说", "AI checkup verdict")), style = MaterialTheme.typography.titleSmall)
-                        if (parsed.grade.isNotBlank()) {
+                        if (parsed.score != null) {
+                            Text(
+                                t(L("AI 评分", "AI score")) + ": ${parsed.score} / 100" + if (parsed.grade.isNotBlank()) " (${parsed.grade})" else "",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = scoreColor(parsed.score),
+                                fontWeight = FontWeight.Bold,
+                            )
+                        } else if (parsed.grade.isNotBlank()) {
                             Text(
                                 t(L("AI 评分", "AI score")) + ": " + parsed.grade,
                                 style = MaterialTheme.typography.titleMedium,
@@ -216,7 +223,7 @@ private fun DoneView(st: HealthCheckState, t: (L) -> String, vm: HealthCheckView
                         }
                         parsed.highlights.forEach { Text("✓ " + it, style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32)) }
                         parsed.concerns.forEach { Text("✗ " + it, style = MaterialTheme.typography.bodySmall, color = Color(0xFFC62828)) }
-                        parsed.recommendations.forEach { Text("→ " + it, style = MaterialTheme.typography.bodySmall) }
+                        (parsed.recommendations + parsed.suggestions).distinct().forEach { Text("→ " + it, style = MaterialTheme.typography.bodySmall) }
                         Text(
                             trBilingual("(说明来自大模型,仅供娱乐参考)|(LLM-generated, informal)", lang),
                             style = MaterialTheme.typography.labelSmall,

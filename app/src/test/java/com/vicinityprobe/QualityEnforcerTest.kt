@@ -90,4 +90,23 @@ class QualityEnforcerTest {
         assertFalse(QualityEnforcer.isPlaceholder("Pixel 9"))
         assertFalse(QualityEnforcer.isPlaceholder("192.168.1.1"))
     }
+
+    @Test
+    fun `零计数是合法结果_不降级`() {
+        // 端口扫描"开放端口=0"是合法结论,不是无数据
+        val before = m(attrs = mapOf("open_ports" to "0", "hosts" to "0"))
+        val after = QualityEnforcer.enforce(before)
+        assertEquals(QualityLevel.EXCELLENT, after.quality.level)
+    }
+
+    @Test
+    fun `GOOD加NO_DATA矛盾状态_按等级处理`() {
+        val before = Measurement(
+            spec = ProbeCatalog.byId("device")!!,
+            status = QualityLevels.CODE_NO_DATA,
+            quality = QualityReport(QualityLevel.GOOD, QualityLevels.CODE_OK, ""),
+        )
+        val after = QualityEnforcer.enforce(before)
+        assertEquals(QualityLevel.DEGRADED, after.quality.level)
+    }
 }
